@@ -151,11 +151,11 @@ function WalletsContent() {
                 )}
                 onClick={() => selectWallet(wallet.id)}
               >
-                <CardContent className="space-y-4 pt-4">
+                <CardContent className="space-y-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div
-                        className="flex size-10 items-center justify-center rounded-full"
+                        className="flex size-10 items-center justify-center rounded-lg"
                         style={{ backgroundColor: `${wallet.chainColor}15` }}
                       >
                         <Wallet className="size-5" style={{ color: wallet.chainColor }} />
@@ -165,9 +165,6 @@ function WalletsContent() {
                         <p className="text-xs text-muted-foreground">{wallet.address}</p>
                       </div>
                     </div>
-                    <Badge variant={wallet.type === "smart" ? "default" : "outline"} className="text-[10px]">
-                      {wallet.type === "smart" ? "Smart" : "Connected"}
-                    </Badge>
                   </div>
 
                   <div className="flex items-end justify-between">
@@ -189,21 +186,21 @@ function WalletsContent() {
                   <div className="flex gap-2">
                     {wallet.type === "connected" ? (
                       <>
-                        <Button variant="outline" size="sm" className="flex-1 gap-1.5">
+                        <Button variant="outline" size="lg" className="flex-1 gap-1.5">
                           <ArrowDownRight className="size-3.5" />
-                          Fund Smart Wallet
+                          Fund lgart Wallet
                         </Button>
-                        <Button variant="ghost" size="sm" className="gap-1.5">
+                        <Button variant="ghost" size="lg" className="gap-1.5">
                           <Copy className="size-3.5" />
                         </Button>
                       </>
                     ) : (
                       <>
-                        <Button variant="outline" size="sm" className="flex-1 gap-1.5">
+                        <Button variant="outline" size="lg" className="flex-1 gap-1.5">
                           <ArrowUpRight className="size-3.5" />
                           Withdraw
                         </Button>
-                        <Button variant="ghost" size="sm" className="gap-1.5">
+                        <Button variant="ghost" size="lg" className="gap-1.5">
                           <ExternalLink className="size-3.5" />
                         </Button>
                       </>

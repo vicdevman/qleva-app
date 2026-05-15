@@ -16,7 +16,7 @@ export function AppShell({ children }: AppShellProps) {
       <AppSidebar />
       <SidebarInset className="min-h-svh">
         <AppTopbar />
-        <main className="flex flex-1 flex-col gap-4 p-4 pt-2 md:gap-6 md:p-6 md:pt-4">
+        <main className="relative flex flex-1 flex-col gap-4 p-4 pt-2 md:gap-6 md:p-6 md:pt-4">
           {children}
         </main>
       </SidebarInset>

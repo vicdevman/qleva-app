@@ -84,7 +84,7 @@ function DashboardContent() {
         <motion.div variants={item} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {/* Total Portfolio */}
           <Card className="relative overflow-hidden border-primary/20 bg-linear-to-br from-primary/5 to-transparent">
-            <CardContent className="pt-4">
+            <CardContent className="">
               <div className="flex items-center gap-2 text-muted-foreground">
                 <BarChart3 className="size-4" />
                 <span className="text-xs font-medium">Total Portfolio</span>
@@ -110,7 +110,7 @@ function DashboardContent() {
 
           {/* Smart Wallet */}
           <Card>
-            <CardContent className="pt-4">
+            <CardContent className="">
               <div className="flex items-center gap-2 text-muted-foreground">
                 <Zap className="size-4" />
                 <span className="text-xs font-medium">Smart Wallet</span>
@@ -128,7 +128,7 @@ function DashboardContent() {
 
           {/* Connected Wallet */}
           <Card>
-            <CardContent className="pt-4">
+            <CardContent className="">
               <div className="flex items-center gap-2 text-muted-foreground">
                 <Wallet className="size-4" />
                 <span className="text-xs font-medium">Connected Wallet</span>
@@ -146,7 +146,7 @@ function DashboardContent() {
 
           {/* Active Automations */}
           <Card>
-            <CardContent className="pt-4">
+            <CardContent className="">
               <div className="flex items-center gap-2 text-muted-foreground">
                 <Activity className="size-4" />
                 <span className="text-xs font-medium">Active Automations</span>

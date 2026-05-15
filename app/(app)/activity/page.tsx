@@ -15,6 +15,7 @@ import {
   CheckCircle2,
   XCircle,
   Activity,
+  Fuel,
 } from "lucide-react";
 import { AppShell } from "@/components/app/app-shell";
 import { SectionCard } from "@/components/shared/section-card";
@@ -83,7 +84,7 @@ function ActivityContent() {
         {/* Stats */}
         <motion.div variants={item} className="grid gap-4 sm:grid-cols-4">
           <Card>
-            <CardContent className="flex items-center gap-3 pt-4">
+            <CardContent className="flex items-center gap-3 ">
               <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10">
                 <Activity className="size-4 text-primary" />
               </div>
@@ -94,7 +95,7 @@ function ActivityContent() {
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="flex items-center gap-3 pt-4">
+            <CardContent className="flex items-center gap-3 ">
               <div className="flex size-9 items-center justify-center rounded-lg bg-green-500/10">
                 <CheckCircle2 className="size-4 text-green-500" />
               </div>
@@ -105,7 +106,7 @@ function ActivityContent() {
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="flex items-center gap-3 pt-4">
+            <CardContent className="flex items-center gap-3 ">
               <div className="flex size-9 items-center justify-center rounded-lg bg-red-500/10">
                 <XCircle className="size-4 text-red-500" />
               </div>
@@ -116,9 +117,9 @@ function ActivityContent() {
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="flex items-center gap-3 pt-4">
+            <CardContent className="flex items-center gap-3 ">
               <div className="flex size-9 items-center justify-center rounded-lg bg-muted">
-                <span className="text-xs font-medium">⛽</span>
+                 <Fuel className="size-4" />
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Gas Used</p>

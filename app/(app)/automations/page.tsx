@@ -18,6 +18,7 @@ import {
   Calendar,
   Repeat,
   Workflow,
+  MoreVertical,
 } from "lucide-react";
 import { AppShell } from "@/components/app/app-shell";
 import { SectionCard } from "@/components/shared/section-card";
@@ -36,7 +37,10 @@ import { useAutomations } from "@/lib/query-hooks";
 import { cn } from "@/lib/utils";
 
 function formatCurrency(value: number) {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(value);
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+  }).format(value);
 }
 
 function timeAgo(dateStr: string | null) {
@@ -62,9 +66,21 @@ function nextRun(dateStr: string | null) {
 }
 
 const triggerConfig = {
-  time: { label: "Time-based", icon: <Clock className="size-3" />, color: "bg-blue-500/10 text-blue-500" },
-  price: { label: "Price Trigger", icon: <TrendingUp className="size-3" />, color: "bg-green-500/10 text-green-500" },
-  portfolio: { label: "Portfolio", icon: <BarChart3 className="size-3" />, color: "bg-purple-500/10 text-purple-500" },
+  time: {
+    label: "Time-based",
+    icon: <Clock className="size-3" />,
+    color: "bg-blue-500/10 text-blue-500",
+  },
+  price: {
+    label: "Price Trigger",
+    icon: <TrendingUp className="size-3" />,
+    color: "bg-green-500/10 text-green-500",
+  },
+  portfolio: {
+    label: "Portfolio",
+    icon: <BarChart3 className="size-3" />,
+    color: "bg-purple-500/10 text-purple-500",
+  },
 };
 
 const container = {
@@ -74,112 +90,153 @@ const container = {
 
 const item = {
   hidden: { opacity: 0, y: 10 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.3, ease: "easeOut" as const } },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.3, ease: "easeOut" as const },
+  },
 };
 
-function AutomationCard({ automation, index }: { automation: any; index: number }) {
-  const trigger = triggerConfig[automation.trigger as keyof typeof triggerConfig];
+function AutomationCard({ automation }: { automation: any }) {
+  const trigger =
+    triggerConfig[automation.trigger as keyof typeof triggerConfig];
+  const isActive = automation.status === "active";
 
   return (
     <motion.div variants={item}>
-      <Card className="group/card transition-all hover:border-primary/30 hover:shadow-md">
-        <CardContent className="space-y-4 pt-4">
-          {/* Header */}
-          <div className="flex items-start justify-between">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <h3 className="text-sm font-semibold">{automation.name}</h3>
+      <Card
+        className={cn(
+          "group/card overflow-hidden transition-all hover:shadow-md",
+          isActive
+            ? "border-border hover:border-primary/30"
+            : "border-dashed border-muted-foreground/20 opacity-60 hover:opacity-100",
+        )}
+      >
+        <CardContent className="">
+          {/* ── Row 1: Identity ── */}
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <span className="flex gap-3 items-center">
+                <h3 className="text-sm font-semibold leading-tight">
+                  {automation.name}
+                </h3>{" "}
                 <Badge
-                  variant={automation.status === "active" ? "default" : "secondary"}
+                  variant="outline"
                   className={cn(
-                    "h-4.5 text-[10px]",
-                    automation.status === "active" && "bg-green-500/15 text-green-600 dark:text-green-400"
+                    "h-5 border px-2 text-[10px] font-medium",
+                    trigger.color,
                   )}
                 >
-                  {automation.status === "active" ? (
-                    <span className="flex items-center gap-1">
-                      <span className="size-1.5 rounded-full bg-green-500 animate-pulse" />
-                      Active
-                    </span>
-                  ) : (
-                    "Paused"
-                  )}
+                  {trigger.label}
                 </Badge>
-              </div>
-              <p className="text-xs text-muted-foreground">{automation.description}</p>
+              </span>
+              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                {automation.description}
+              </p>
             </div>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon-xs" className="opacity-0 group-hover/card:opacity-100">
-                  <MoreHorizontal className="size-3.5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem>
-                  <Play className="size-3.5" />
-                  {automation.status === "active" ? "Pause" : "Resume"}
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <Copy className="size-3.5" />
-                  Duplicate
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem className="text-destructive">
-                  <Trash2 className="size-3.5" />
-                  Delete
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+
+            <div className="flex shrink-0 items-center gap-2">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon-xs" className="">
+                    <MoreVertical className="size-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-40">
+                  <DropdownMenuItem className="gap-2 text-xs">
+                    {isActive ? (
+                      <Pause className="size-3.5" />
+                    ) : (
+                      <Play className="size-3.5" />
+                    )}
+                    {isActive ? "Pause" : "Resume"}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="gap-2 text-xs">
+                    <Copy className="size-3.5" />
+                    Duplicate
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem className="gap-2 text-xs text-destructive focus:bg-destructive/10 focus:text-destructive">
+                    <Trash2 className="size-3.5" />
+                    Delete
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
 
-          {/* Trigger Badge */}
-          <div className="flex items-center gap-2">
-            <span className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium", trigger.color)}>
-              {trigger.icon}
-              {trigger.label}
+          {/* ── Row 2: What it does ── */}
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            <span className="text-xs text-muted-foreground">
+              {automation.action} · {automation.amount} · {automation.chain}
             </span>
-            <span className="text-xs text-muted-foreground">{automation.frequency}</span>
           </div>
 
-          {/* Details Grid */}
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {/* ── Row 3: Stats — text-first, no icons ── */}
+          <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-4">
             <div>
-              <p className="text-[10px] text-muted-foreground">Action</p>
-              <p className="text-xs font-medium">{automation.action}</p>
+              <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground/60">
+                Success
+              </p>
+              <p className="mt-0.5 text-sm font-semibold">
+                {automation.successRate}%
+              </p>
             </div>
             <div>
-              <p className="text-[10px] text-muted-foreground">Amount</p>
-              <p className="text-xs font-medium">{automation.amount}</p>
+              <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground/60">
+                Runs
+              </p>
+              <p className="mt-0.5 text-sm font-semibold">
+                {automation.totalExecutions}
+              </p>
             </div>
             <div>
-              <p className="text-[10px] text-muted-foreground">Chain</p>
-              <p className="text-xs font-medium">{automation.chain}</p>
+              <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground/60">
+                Gas
+              </p>
+              <p className="mt-0.5 text-sm font-semibold">
+                {automation.gasUsed} ETH
+              </p>
             </div>
             <div>
-              <p className="text-[10px] text-muted-foreground">Executions</p>
-              <p className="text-xs font-medium">{automation.totalExecutions} runs</p>
+              <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground/60">
+                Volume
+              </p>
+              <p className="mt-0.5 text-sm font-semibold">
+                {automation.totalVolume}
+              </p>
             </div>
           </div>
 
-          {/* Footer Stats */}
-          <div className="flex items-center justify-between border-t pt-3">
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-1">
-                <CheckCircle2 className="size-3 text-green-500" />
-                <span className="text-[10px] text-muted-foreground">
-                  {automation.successRate}% success
+          {/* ── Row 4: Schedule ── */}
+          <div className="mt-4 flex items-center justify-between border-t pt-3">
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-2">
+                {isActive ? (
+                  <span className="relative flex size-2">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
+                    <span className="relative inline-flex size-2 rounded-full bg-green-500" />
+                  </span>
+                ) : (
+                  <span className="size-2 rounded-full bg-muted-foreground/30" />
+                )}
+                <span className="text-xs font-medium text-muted-foreground">
+                  {isActive ? "Active" : "Paused"}
                 </span>
-              </div>
-              <div className="flex items-center gap-1">
-                <Fuel className="size-3 text-muted-foreground" />
-                <span className="text-[10px] text-muted-foreground">
-                  {automation.gasUsed} ETH gas
-                </span>
-              </div>
+              </div>{" "}
+              <span className="text-xs text-muted-foreground">
+                {automation.frequency}
+              </span>
             </div>
+
             <div className="text-right">
-              <p className="text-[10px] text-muted-foreground">
-                {automation.status === "active" ? `Next: ${nextRun(automation.nextExecution)}` : `Last: ${timeAgo(automation.lastExecuted)}`}
+              <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground/50">
+                {isActive ? "Next run" : "Last run"}
+              </p>
+              <p className="mt-0.5 text-xs font-medium">
+                {isActive
+                  ? nextRun(automation.nextExecution)
+                  : timeAgo(automation.lastExecuted)}
               </p>
             </div>
           </div>
@@ -191,9 +248,12 @@ function AutomationCard({ automation, index }: { automation: any; index: number 
 
 function AutomationsContent() {
   const { data: automations, isLoading } = useAutomations();
-  const activeCount = automations?.filter((a) => a.status === "active").length ?? 0;
-  const totalExecutions = automations?.reduce((sum, a) => sum + a.totalExecutions, 0) ?? 0;
-  const totalVolume = automations?.reduce((sum, a) => sum + a.totalVolume, 0) ?? 0;
+  const activeCount =
+    automations?.filter((a) => a.status === "active").length ?? 0;
+  const totalExecutions =
+    automations?.reduce((sum, a) => sum + a.totalExecutions, 0) ?? 0;
+  const totalVolume =
+    automations?.reduce((sum, a) => sum + a.totalVolume, 0) ?? 0;
 
   return (
     <AppShell>
@@ -204,14 +264,19 @@ function AutomationsContent() {
         className="space-y-6"
       >
         {/* Header */}
-        <motion.div variants={item} className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <motion.div
+          variants={item}
+          className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
+        >
           <div>
-            <h1 className="font-heading text-2xl font-semibold tracking-tight">Automations</h1>
+            <h1 className="font-heading text-2xl font-semibold tracking-tight">
+              Automations
+            </h1>
             <p className="text-sm text-muted-foreground">
               Manage all your active workflows and scheduled actions
             </p>
           </div>
-          <Button size="sm" className="gap-2">
+          <Button size="lg" className="gap-2">
             <Plus className="size-4" />
             New Automation
           </Button>
@@ -226,7 +291,9 @@ function AutomationsContent() {
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Total</p>
-                <p className="font-heading text-lg font-semibold">{automations?.length ?? 0}</p>
+                <p className="font-heading text-lg font-semibold">
+                  {automations?.length ?? 0}
+                </p>
               </div>
             </CardContent>
           </Card>
@@ -237,7 +304,9 @@ function AutomationsContent() {
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Active</p>
-                <p className="font-heading text-lg font-semibold">{activeCount}</p>
+                <p className="font-heading text-lg font-semibold">
+                  {activeCount}
+                </p>
               </div>
             </CardContent>
           </Card>
@@ -248,7 +317,9 @@ function AutomationsContent() {
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Executions</p>
-                <p className="font-heading text-lg font-semibold">{totalExecutions}</p>
+                <p className="font-heading text-lg font-semibold">
+                  {totalExecutions}
+                </p>
               </div>
             </CardContent>
           </Card>
@@ -260,7 +331,9 @@ function AutomationsContent() {
               <div>
                 <p className="text-xs text-muted-foreground">Volume</p>
                 <p className="font-heading text-lg font-semibold">
-                  {totalVolume >= 1000 ? `$${(totalVolume / 1000).toFixed(1)}k` : `$${totalVolume}`}
+                  {totalVolume >= 1000
+                    ? `$${(totalVolume / 1000).toFixed(1)}k`
+                    : `$${totalVolume}`}
                 </p>
               </div>
             </CardContent>
@@ -274,9 +347,14 @@ function AutomationsContent() {
               <Skeleton key={i} className="h-48 w-full rounded-xl" />
             ))
           ) : (
-            <motion.div variants={container} initial="hidden" animate="show" className="space-y-3">
+            <motion.div
+              variants={container}
+              initial="hidden"
+              animate="show"
+              className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:grid-cols-2"
+            >
               {automations?.map((automation, i) => (
-                <AutomationCard key={automation.id} automation={automation} index={i} />
+                <AutomationCard key={automation.id} automation={automation} />
               ))}
             </motion.div>
           )}

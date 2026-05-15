@@ -79,7 +79,7 @@ function SettingsContent() {
               User preferences, security, and automation controls
             </p>
           </div>
-          <Button size="sm" className="gap-2">
+          <Button size="lg" className="gap-2">
             <Save className="size-3.5" />
             Save Changes
           </Button>

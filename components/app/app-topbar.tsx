@@ -56,26 +56,19 @@ export function AppTopbar() {
       {/* Command Bar Trigger */}
       <Button
         variant="outline"
-        className="relative h-8 w-64 justify-start gap-2 text-muted-foreground sm:w-72"
+        className="relative h-9 w-9 justify-center gap-2 p-0 text-muted-foreground sm:w-64 sm:justify-start sm:px-3 sm:py-2 lg:w-72"
         onClick={toggleCommandBar}
       >
-        <Search className="size-3.5" />
-        <span className="text-sm">Search or command...</span>
-        <kbd className="ml-auto hidden items-center gap-0.5 rounded border bg-muted px-1.5 font-mono text-[10px] text-muted-foreground sm:inline-flex">
+        <Search className="size-4 sm:size-3.5" />
+        <span className="hidden text-sm sm:inline-flex">Search or command...</span>
+        <kbd className="ml-auto hidden items-center gap-0.5 rounded border bg-muted px-1.5 font-mono text-[10px] text-muted-foreground lg:inline-flex">
           <Command className="size-2.5" />K
         </kbd>
       </Button>
 
       <div className="flex-1" />
 
-      {/* Portfolio Summary Pill */}
-      <div className="hidden items-center gap-2 rounded-full border bg-muted/50 px-3 py-1.5 md:flex">
-        <Wallet className="size-3.5 text-muted-foreground" />
-        <span className="text-sm font-medium">$3,731.05</span>
-        <span className="text-xs text-green-500">+3.46%</span>
-      </div>
-
-      {/* Notifications */}
+ {/* Notifications */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" size="icon-sm" className="relative">
@@ -84,7 +77,7 @@ export function AppTopbar() {
               <motion.span
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
-                className="absolute -top-0.5 -right-0.5 flex size-4 items-center justify-center rounded-full bg-destructive text-[9px] font-bold text-destructive-foreground"
+                className="absolute -top-0.5 -right-0.5 flex size-4 items-center justify-center rounded-full bg-chart-3 text-[10px] font-bold text-destructive-foreground"
               >
                 {unreadCount}
               </motion.span>
@@ -114,8 +107,17 @@ export function AppTopbar() {
         </DropdownMenuContent>
       </DropdownMenu>
 
+      {/* Portfolio Summary Pill */}
+      <div className="hidden items-center gap-2 rounded-full border bg-muted/50 px-3 py-1.5 md:flex">
+        <Wallet className="size-3.5 text-muted-foreground" />
+        <span className="text-sm font-medium">$3,731.05</span>
+        <span className="text-xs text-green-500">+3.46%</span>
+      </div>
+
+     
+
       {/* Profile Menu */}
-      <DropdownMenu>
+      {/* <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="h-8 gap-2 px-2">
             <div className="flex size-6 items-center justify-center rounded-full bg-primary/10 text-xs font-medium text-primary">
@@ -147,7 +149,7 @@ export function AppTopbar() {
             Log out
           </DropdownMenuItem>
         </DropdownMenuContent>
-      </DropdownMenu>
+      </DropdownMenu> */}
     </header>
   );
 }

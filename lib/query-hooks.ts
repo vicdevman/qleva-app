@@ -135,6 +135,26 @@ export function useChatMessages() {
   });
 }
 
+export function useSendMessage() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ content, role = "user" }: { content: string, role?: "user" | "assistant" }) => {
+      await delay(800);
+      return {
+        id: Math.random().toString(36).substring(7),
+        role,
+        content,
+        timestamp: new Date().toISOString(),
+      };
+    },
+    onSuccess: (newMessage) => {
+      qc.setQueryData(["chat-messages"], (old: any[] | undefined) => {
+        return [...(old || []), newMessage];
+      });
+    },
+  });
+}
+
 // Settings hooks
 export function useSettings() {
   return useQuery({

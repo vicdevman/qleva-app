@@ -49,9 +49,6 @@ function HelpContent() {
       <motion.div variants={container} initial="hidden" animate="show" className="space-y-6">
         {/* Header */}
         <motion.div variants={item} className="flex items-center gap-3">
-          <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10">
-            <Brain className="size-5 text-primary" />
-          </div>
           <div>
             <h1 className="font-heading text-2xl font-semibold tracking-tight">AI Memory & Help</h1>
             <p className="text-sm text-muted-foreground">

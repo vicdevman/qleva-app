@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "Bash(npx tsc *)",
-      "Bash(npm run *)"
+      "Bash(npm run *)",
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\User\\\\OneDrive\\\\Desktop\\\\web3\\\\qleva\\\\qleva-app\\\\app\\\\\\(app\\)\\\\automations\" -Recurse)",
+      "Bash(npx next *)"
     ]
   }
 }
