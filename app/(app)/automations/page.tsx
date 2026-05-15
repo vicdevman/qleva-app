@@ -210,7 +210,7 @@ function AutomationCard({ automation }: { automation: any }) {
 
           {/* ── Row 4: Schedule ── */}
           <div className="mt-4 flex items-center justify-between border-t pt-3">
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-1">
               <div className="flex items-center gap-2">
                 {isActive ? (
                   <span className="relative flex size-2">

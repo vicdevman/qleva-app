@@ -251,16 +251,8 @@ function ChatContent() {
 
   return (
     <AppShell>
-      <div className="relative flex h-[calc(100svh-5.5rem)] w-full flex-col overflow-hidden bg-background">
-
-        {/* Input Area */}
-        <div
-          className={cn(
-            "absolute left-0 right-0 z-20 px-4 transition-all duration-1000 ease-[cubic-bezier(0.23,1,0.32,1)]",
-            hasMessages ? "bottom-0" : "top-1/2 -translate-y-1/2"
-          )}
-        >
-           <AnimatePresence>
+      <div className="relative flex h-100svh md:h-[calc(100svh-6rem)] w-full flex-col overflow-hidden bg-background">
+        <AnimatePresence>
           {!hasMessages ? (
             <motion.div
               initial={{ opacity: 0 }}
@@ -268,7 +260,7 @@ function ChatContent() {
               exit={{ opacity: 0, y: -20 }}
               className="flex-1 flex flex-col items-center justify-center p-6 text-center z-0"
             >
-              <motion.div className="mb-6">
+              <motion.div className="mb-18">
                 <h1 className="text-3xl font-bold tracking-tight mb-3">
                   How can I help you?
                 </h1>
@@ -280,15 +272,13 @@ function ChatContent() {
             </motion.div>
           ) : (
             <div className="flex-1 overflow-y-auto scroll-smooth no-scrollbar">
-              <div className="mx-auto max-w-4xl pb-40">
+              <div className="mx-auto max-w-3xl pb-40">
                 {messages.map((msg) => (
                   <MessageBubble key={msg.id} message={msg} />
                 ))}
-                {isTyping && (
-                  <div className="flex items-center gap-2 animate-pulse max-w-3xl mx-auto">
-                    <div className="flex size-8 items-center justify-center rounded-full bg-primary/10 border border-primary/20">
-                      <Brain className="size-4 text-primary" />
-                    </div>
+                {!isTyping && (
+                  <div className="flex items-center gap-2 animate-pulse max-w-3xl mx-auto pl-6">
+                 <Brain className="size-4 text-primary" />
                     <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60">
                       Qleva is thinking...
                     </span>
@@ -299,8 +289,15 @@ function ChatContent() {
             </div>
           )}
         </AnimatePresence>
-          <div className="mx-auto w-full max-w-2xl">
 
+        {/* Input Area */}
+        <div
+          className={cn(
+            "fixed md:absolute left-0 right-0 z-20 px-4 transition-all duration-1000 ease-[cubic-bezier(0.23,1,0.32,1)]",
+            hasMessages ? "bottom-2 md:bottom-1" : "top-1/2 -translate-y-1/2"
+          )}
+        >
+          <div className="mx-auto w-full max-w-3xl">
             <Card className="overflow-hidden border border-border/50 shadow-[0_20px_50px_rgba(0,0,0,0.3)] backdrop-blur-xl bg-card/60 rounded-3xl">
               <CardContent className="p-0">
                 <div className="flex items-end gap-3 px-4">
