@@ -135,7 +135,7 @@ function AutomationCard({ automation }: { automation: any }) {
               </p>
             </div>
 
-            <div className="flex shrink-0 items-center gap-2">
+            <div className="grid grid-cols-2 items-center gap-2">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon-xs" className="">
@@ -283,7 +283,7 @@ function AutomationsContent() {
         </motion.div>
 
         {/* Stats Row */}
-        <motion.div variants={item} className="grid gap-4 sm:grid-cols-4">
+        <motion.div variants={item} className="grid gap-4 grid-cols-2 sm:grid-cols-4">
           <Card>
             <CardContent className="flex items-center gap-3">
               <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10">
