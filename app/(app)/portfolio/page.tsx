@@ -12,6 +12,7 @@ import {
   Download,
   ExternalLink,
   Briefcase,
+  ArrowUp,
 } from "lucide-react";
 import { AppShell } from "@/components/app/app-shell";
 import { SectionCard } from "@/components/shared/section-card";
@@ -103,35 +104,35 @@ function PortfolioContent() {
         {/* Summary Cards */}
         <motion.div variants={item} className="grid gap-4 sm:grid-cols-3">
           <Card className="bg-linear-to-br from-primary/5 to-transparent">
-            <CardContent className="flex flex-col gap-1">
+            <CardContent className="flex flex-col gap-2">
               <p className="text-xs text-muted-foreground">Total Value</p>
               {isLoading ? (
                 <Skeleton className="mt-1 h-8 w-32" />
               ) : (
-                <p className="font-heading text-2xl font-semibold">
+                <span className="flex gap-4"><p className="font-heading text-3xl font-semibold">
                   {formatCurrency(portfolio?.totalValue ?? 0)}
                 </p>
-              )}
-              {portfolio && (
+                 {portfolio && (
                 <div className="mt-1 flex items-center gap-1">
-                  <TrendingUp className="size-3 text-green-500" />
+                  <ArrowUp className="size-3 text-green-500" />
                   <span className="text-xs text-green-500">+{portfolio.dailyChangePercent}%</span>
                 </div>
               )}
+                </span>
+              )}
+             
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="flex flex-col gap-1">
+            <CardContent className="flex flex-col gap-2">
               <p className="text-xs text-muted-foreground">Smart Wallet</p>
-              <p className="mt-1 font-heading text-2xl font-semibold">{formatCurrency(1280.30)}</p>
-              <p className="mt-1 text-xs text-muted-foreground">Base Network</p>
+              <p className="mt-1 font-heading text-3xl font-semibold">{formatCurrency(1280.30)}</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="flex flex-col gap-1">
               <p className="text-xs text-muted-foreground">Connected Wallet</p>
-              <p className="mt-1 font-heading text-2xl font-semibold">{formatCurrency(2450.75)}</p>
-              <p className="mt-1 text-xs text-muted-foreground">MetaMask · Ethereum</p>
+              <p className="mt-1 font-heading text-3xl font-semibold">{formatCurrency(2450.75)}</p>
             </CardContent>
           </Card>
         </motion.div>
@@ -140,7 +141,7 @@ function PortfolioContent() {
         <div className="grid gap-4 lg:grid-cols-3">
           <motion.div variants={item} className="lg:col-span-2">
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardHeader className="flex flex-row flex-wrap items-center justify-between pb-2">
                 <div className="space-y-1">
                   <CardTitle>Portfolio Performance</CardTitle>
                   <CardDescription>Historical value</CardDescription>

@@ -171,6 +171,7 @@ function DashboardContent() {
               title="Portfolio Performance"
               description="Last 14 days"
               delay={0.1}
+              className=""
             >
               {portfolioLoading ? (
                 <Skeleton className="h-40 w-full rounded-lg" />
