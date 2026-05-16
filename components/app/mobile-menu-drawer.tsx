@@ -31,15 +31,22 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 
 const mainNav = [
-  { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
+  // { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
+  { title: "Portfolio", url: "/portfolio", icon: Briefcase },
   { title: "Chat", url: "/chat", icon: MessageSquareText },
   { title: "Automations", url: "/automations", icon: Workflow },
-  { title: "Portfolio", url: "/portfolio", icon: Briefcase },
-  { title: "Activity", url: "/activity", icon: Clock },
+
+  // { title: "Activity", url: "/activity", icon: Clock },
   { title: "Wallets", url: "/wallets", icon: Wallet },
 ];
 
-export function MobileMenuDrawer({ open, setOpen }: { open: boolean, setOpen: (open: boolean) => void }) {
+export function MobileMenuDrawer({
+  open,
+  setOpen,
+}: {
+  open: boolean;
+  setOpen: (open: boolean) => void;
+}) {
   const pathname = usePathname();
 
   // Dummy chat data matching the sidebar
@@ -61,29 +68,30 @@ export function MobileMenuDrawer({ open, setOpen }: { open: boolean, setOpen: (o
               <span className="text-[10px] text-muted-foreground">Smart Wallet OS</span>
             </div>
           </div> */}
-          
+
           {/* Search Bar Sneaked In */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-            <Input 
-              placeholder="Search or command..." 
+            <Input
+              placeholder="Search or command..."
               className="pl-9 bg-muted/50 border-border/50 py-6"
             />
           </div>
         </DrawerHeader>
-        
+
         <div className="flex-1 overflow-auto px-4 pb-6 space-y-6 mt-2">
           {/* Main Nav Gallery */}
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             {mainNav.map((item) => {
-              const isActive = pathname === item.url || pathname.startsWith(item.url + "/");
+              const isActive =
+                pathname === item.url || pathname.startsWith(item.url + "/");
               return (
                 <DrawerClose asChild key={item.title}>
                   <Link
                     href={item.url}
                     className={`flex flex-col items-center justify-center gap-2 rounded-xl p-4 text-sm font-medium transition-all ${
-                      isActive 
-                        ? "bg-primary text-primary-foreground shadow-md scale-[1.02]" 
+                      isActive
+                        ? "bg-primary text-primary-foreground shadow-md scale-[1.02]"
                         : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground border border-border/50"
                     }`}
                   >
@@ -111,14 +119,11 @@ export function MobileMenuDrawer({ open, setOpen }: { open: boolean, setOpen: (o
                     <Link
                       href={url}
                       className={`flex items-center gap-4 rounded-xl px-4 py-3.5 text-sm font-medium transition-all active:scale-[0.98] ${
-                        isActive 
-                          ? "bg-primary/10 text-primary border border-primary/20" 
+                        isActive
+                          ? "bg-primary/10 text-primary border border-primary/20"
                           : "bg-muted/30 text-muted-foreground hover:bg-muted hover:text-foreground border border-border/30"
                       }`}
                     >
-                      <div className={`p-2 rounded-xl ${isActive ? 'bg-primary/20' : 'bg-background/50'}`}>
-                        <MessageSquareText className="size-4 shrink-0" />
-                      </div>
                       <span className="truncate">{chat.title}</span>
                     </Link>
                   </DrawerClose>
@@ -136,32 +141,51 @@ export function MobileMenuDrawer({ open, setOpen }: { open: boolean, setOpen: (o
                 <User className="size-6" />
               </div>
               <div className="flex flex-col leading-none">
-                <span className="text-base font-semibold text-foreground">0x1234...abcd</span>
-                <span className="text-sm text-muted-foreground truncate max-w-[140px]">user@example.com</span>
+                <span className="text-base font-semibold text-foreground">
+                  0x1234...abcd
+                </span>
+                <span className="text-sm text-muted-foreground truncate max-w-[140px]">
+                  user@example.com
+                </span>
               </div>
             </div>
-            
+
             <div className="grid grid-cols-2 gap-3">
               <DrawerClose asChild>
-                <Link href="/notifications" className="flex items-center gap-3 rounded-xl p-4 text-sm font-medium bg-muted/30 text-muted-foreground hover:bg-muted border border-border/30 transition-all active:scale-[0.98]">
-                  <div className="p-2 rounded-xl bg-background/50 text-foreground"><Bell className="size-4" /></div>
-                  Alerts
+                <Link
+                  href="/notifications"
+                  className="flex items-center gap-3 rounded-xl p-4 text-sm font-medium bg-muted/30 text-muted-foreground hover:bg-muted border border-border/30 transition-all active:scale-[0.98]"
+                >
+                  <div className="p-2 rounded-xl bg-background/50 text-foreground">
+                    <Bell className="size-4" />
+                  </div>
+                  Notifications
                 </Link>
               </DrawerClose>
               <DrawerClose asChild>
-                <Link href="/settings" className="flex items-center gap-3 rounded-xl p-4 text-sm font-medium bg-muted/30 text-muted-foreground hover:bg-muted border border-border/30 transition-all active:scale-[0.98]">
-                  <div className="p-2 rounded-xl bg-background/50 text-foreground"><Settings className="size-4" /></div>
+                <Link
+                  href="/settings"
+                  className="flex items-center gap-3 rounded-xl p-4 text-sm font-medium bg-muted/30 text-muted-foreground hover:bg-muted border border-border/30 transition-all active:scale-[0.98]"
+                >
+                  <div className="p-2 rounded-xl bg-background/50 text-foreground">
+                    <Settings className="size-4" />
+                  </div>
                   Settings
                 </Link>
               </DrawerClose>
               <DrawerClose asChild>
-                <Link href="/help" className="flex items-center gap-3 rounded-xl p-4 text-sm font-medium bg-muted/30 text-muted-foreground hover:bg-muted border border-border/30 transition-all active:scale-[0.98]">
-                  <div className="p-2 rounded-xl bg-background/50 text-foreground"><HelpCircle className="size-4" /></div>
+                <Link
+                  href="/help"
+                  className="flex items-center gap-3 rounded-xl p-4 text-sm font-medium bg-muted/30 text-muted-foreground hover:bg-muted border border-border/30 transition-all active:scale-[0.98]"
+                >
+                  <div className="p-2 rounded-xl bg-background/50 text-foreground">
+                    <HelpCircle className="size-4" />
+                  </div>
                   Help
                 </Link>
               </DrawerClose>
             </div>
-            
+
             <DrawerClose asChild>
               <button className="w-full flex items-center justify-center gap-3 rounded-xl p-4 mt-2 text-sm font-medium text-destructive bg-destructive/5 hover:bg-destructive/10 border border-destructive/10 transition-all active:scale-[0.98]">
                 <LogOut className="size-5" /> Log out

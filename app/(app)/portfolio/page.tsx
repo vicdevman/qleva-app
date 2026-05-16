@@ -222,7 +222,7 @@ function PortfolioContent() {
 
         {/* Assets & Activity Tabs */}
         <motion.div variants={item} className="mt-4">
-          <Tabs defaultValue="assets" className="w-full">
+          <Tabs defaultValue="assets" className="w-full" >
             <div className="flex items-center justify-between mb-4">
               <TabsList>
                 <TabsTrigger value="assets">Assets</TabsTrigger>

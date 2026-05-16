@@ -114,7 +114,7 @@ function WalletRelationshipVisualizer() {
 
 function WalletsContent() {
   const { wallets, selectedWalletId, selectWallet } = useWalletStore();
-  const [isArchitectureExpanded, setIsArchitectureExpanded] = React.useState(true);
+  const [isArchitectureExpanded, setIsArchitectureExpanded] = React.useState(false);
 
   return (
     <AppShell>
@@ -141,7 +141,7 @@ function WalletsContent() {
               onClick={() => setIsArchitectureExpanded(!isArchitectureExpanded)}
             >
               <div>
-                <h3 className="font-heading text-lg font-semibold tracking-tight">Wallet Architecture</h3>
+                <h3 className="font-heading text-lg font-semibold tracking-tight">Wallet Architecture ?</h3>
                 <p className="text-sm text-muted-foreground">How your wallets work together</p>
               </div>
               <Button variant="ghost" size="icon" className="shrink-0" onClick={(e) => { e.stopPropagation(); setIsArchitectureExpanded(!isArchitectureExpanded); }}>
@@ -251,7 +251,6 @@ function WalletsContent() {
                   className="flex items-center justify-between rounded-lg border p-3"
                 >
                   <div className="flex items-center gap-3">
-                    <Shield className="size-4 text-muted-foreground" />
                     <div>
                       <p className="text-sm font-medium">{perm.token}</p>
                       <p className="text-xs text-muted-foreground">
