@@ -14,7 +14,10 @@ import {
   ChevronRight,
   Zap,
   CheckCircle2,
+  ChevronUp,
+  ChevronDown,
 } from "lucide-react";
+import { AnimatePresence } from "framer-motion";
 import { AppShell } from "@/components/app/app-shell";
 import { SectionCard } from "@/components/shared/section-card";
 import { Card, CardContent } from "@/components/ui/card";
@@ -111,6 +114,7 @@ function WalletRelationshipVisualizer() {
 
 function WalletsContent() {
   const { wallets, selectedWalletId, selectWallet } = useWalletStore();
+  const [isArchitectureExpanded, setIsArchitectureExpanded] = React.useState(true);
 
   return (
     <AppShell>
@@ -131,13 +135,34 @@ function WalletsContent() {
 
         {/* Wallet Relationship Visualizer */}
         <motion.div variants={item}>
-          <SectionCard
-            title="Wallet Architecture"
-            description="How your wallets work together"
-            delay={0.1}
-          >
-            <WalletRelationshipVisualizer />
-          </SectionCard>
+          <Card className="overflow-hidden border border-border/50 bg-card/50">
+            <div 
+              className="flex items-center justify-between px-6 cursor-pointer"
+              onClick={() => setIsArchitectureExpanded(!isArchitectureExpanded)}
+            >
+              <div>
+                <h3 className="font-heading text-lg font-semibold tracking-tight">Wallet Architecture</h3>
+                <p className="text-sm text-muted-foreground">How your wallets work together</p>
+              </div>
+              <Button variant="ghost" size="icon" className="shrink-0" onClick={(e) => { e.stopPropagation(); setIsArchitectureExpanded(!isArchitectureExpanded); }}>
+                {isArchitectureExpanded ? <ChevronUp className="size-5" /> : <ChevronDown className="size-5" />}
+              </Button>
+            </div>
+            <AnimatePresence initial={false}>
+              {isArchitectureExpanded && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.3, ease: "easeInOut" }}
+                >
+                  <div className="p-2">
+                    <WalletRelationshipVisualizer />
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </Card>
         </motion.div>
 
         {/* Wallet Cards */}

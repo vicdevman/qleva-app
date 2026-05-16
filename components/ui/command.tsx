@@ -52,7 +52,7 @@ function CommandDialog({
         <DialogTitle>{title}</DialogTitle>
         <DialogDescription>{description}</DialogDescription>
       </DialogHeader>
-      <DialogContent
+       <DialogContent
         className={cn(
           "top-1/5 translate-y-0 overflow-hidden rounded-xl! p-0",
           className

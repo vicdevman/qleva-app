@@ -16,9 +16,12 @@ import {
 import { AppShell } from "@/components/app/app-shell";
 import { SectionCard } from "@/components/shared/section-card";
 import { MiniChart, AllocationBar } from "@/components/shared/mini-chart";
-import { Card, CardContent } from "@/components/ui/card";
+import { Area, AreaChart, CartesianGrid, XAxis } from "recharts";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
 import { usePortfolio, useActivity } from "@/lib/query-hooks";
 import { cn } from "@/lib/utils";
 
@@ -36,9 +39,45 @@ const item = {
   show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: "easeOut" as const } },
 };
 
+const chartDataMap = {
+  "24H": [
+    { time: "00:00", value: 3400 },
+    { time: "04:00", value: 3450 },
+    { time: "08:00", value: 3420 },
+    { time: "12:00", value: 3600 },
+    { time: "16:00", value: 3580 },
+    { time: "20:00", value: 3731 },
+  ],
+  "30D": [
+    { time: "Week 1", value: 3100 },
+    { time: "Week 2", value: 3300 },
+    { time: "Week 3", value: 3200 },
+    { time: "Week 4", value: 3731 },
+  ],
+  "Months": [
+    { time: "Jan", value: 2100 },
+    { time: "Feb", value: 2500 },
+    { time: "Mar", value: 2800 },
+    { time: "Apr", value: 3100 },
+    { time: "May", value: 3731 },
+  ],
+  "Years": [
+    { time: "2023", value: 1200 },
+    { time: "2024", value: 3731 },
+  ]
+};
+
+const chartConfig = {
+  value: {
+    label: "Portfolio Value",
+    color: "hsl(var(--primary))",
+  },
+} satisfies ChartConfig;
+
 function PortfolioContent() {
   const { data: portfolio, isLoading } = usePortfolio();
   const { data: activity, isLoading: activityLoading } = useActivity();
+  const [chartFilter, setChartFilter] = React.useState("30D");
 
   return (
     <AppShell>
@@ -64,7 +103,7 @@ function PortfolioContent() {
         {/* Summary Cards */}
         <motion.div variants={item} className="grid gap-4 sm:grid-cols-3">
           <Card className="bg-linear-to-br from-primary/5 to-transparent">
-            <CardContent className="pt-4">
+            <CardContent className="flex flex-col gap-1">
               <p className="text-xs text-muted-foreground">Total Value</p>
               {isLoading ? (
                 <Skeleton className="mt-1 h-8 w-32" />
@@ -82,14 +121,14 @@ function PortfolioContent() {
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="pt-4">
+            <CardContent className="flex flex-col gap-1">
               <p className="text-xs text-muted-foreground">Smart Wallet</p>
               <p className="mt-1 font-heading text-2xl font-semibold">{formatCurrency(1280.30)}</p>
               <p className="mt-1 text-xs text-muted-foreground">Base Network</p>
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="pt-4">
+            <CardContent className="flex flex-col gap-1">
               <p className="text-xs text-muted-foreground">Connected Wallet</p>
               <p className="mt-1 font-heading text-2xl font-semibold">{formatCurrency(2450.75)}</p>
               <p className="mt-1 text-xs text-muted-foreground">MetaMask · Ethereum</p>
@@ -100,13 +139,67 @@ function PortfolioContent() {
         {/* Charts */}
         <div className="grid gap-4 lg:grid-cols-3">
           <motion.div variants={item} className="lg:col-span-2">
-            <SectionCard title="Portfolio Performance" description="Last 30 days" delay={0.1}>
-              {isLoading ? (
-                <Skeleton className="h-48 w-full rounded-lg" />
-              ) : (
-                <MiniChart data={portfolio?.portfolioHistory ?? []} height={180} />
-              )}
-            </SectionCard>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <div className="space-y-1">
+                  <CardTitle>Portfolio Performance</CardTitle>
+                  <CardDescription>Historical value</CardDescription>
+                </div>
+                <div className="flex gap-1 bg-muted/50 p-1 rounded-lg">
+                  {["24H", "30D", "Months", "Years"].map((period) => (
+                    <Button
+                      key={period}
+                      variant={chartFilter === period ? "secondary" : "ghost"}
+                      size="sm"
+                      className="h-7 text-xs px-2"
+                      onClick={() => setChartFilter(period)}
+                    >
+                      {period}
+                    </Button>
+                  ))}
+                </div>
+              </CardHeader>
+              <CardContent>
+                <ChartContainer config={chartConfig} className="h-[200px] w-full">
+                  <AreaChart
+                    accessibilityLayer
+                    data={chartDataMap[chartFilter as keyof typeof chartDataMap]}
+                    margin={{
+                      left: 0,
+                      right: 0,
+                      top: 10,
+                      bottom: 0,
+                    }}
+                  >
+                    <defs>
+                      <linearGradient id="fillValue" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="var(--chart-3)" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="var(--chart-4)" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid vertical={false} strokeDasharray="3 3" className="stroke-muted" />
+                    <XAxis
+                      dataKey="time"
+                      tickLine={false}
+                      axisLine={false}
+                      tickMargin={8}
+                      className="text-xs text-muted-foreground"
+                    />
+                    <ChartTooltip
+                      cursor={false}
+                      content={<ChartTooltipContent indicator="dot" hideLabel />}
+                    />
+                    <Area
+                      dataKey="value"
+                      type="monotone"
+                      fill="url(#fillValue)"
+                      stroke="var(--color-value)"
+                      strokeWidth={2}
+                    />
+                  </AreaChart>
+                </ChartContainer>
+              </CardContent>
+            </Card>
           </motion.div>
           <motion.div variants={item}>
             <SectionCard title="Allocation" delay={0.15}>
@@ -127,10 +220,19 @@ function PortfolioContent() {
           </motion.div>
         </div>
 
-        {/* Asset Table */}
-        <motion.div variants={item}>
-          <SectionCard title="Assets" delay={0.2}>
-            {isLoading ? (
+        {/* Assets & Activity Tabs */}
+        <motion.div variants={item} className="mt-4">
+          <Tabs defaultValue="assets" className="w-full">
+            <div className="flex items-center justify-between mb-4">
+              <TabsList>
+                <TabsTrigger value="assets">Assets</TabsTrigger>
+                <TabsTrigger value="transactions">Recent Transactions</TabsTrigger>
+              </TabsList>
+            </div>
+            
+            <TabsContent value="assets" className="m-0 border-none p-0 outline-none">
+              <SectionCard title="Assets" delay={0.2}>
+                {isLoading ? (
               <div className="space-y-3">
                 {[1, 2, 3].map((i) => (
                   <Skeleton key={i} className="h-12 w-full" />
@@ -200,14 +302,13 @@ function PortfolioContent() {
                   </tbody>
                 </table>
               </div>
-            )}
-          </SectionCard>
-        </motion.div>
+                )}
+              </SectionCard>
+            </TabsContent>
 
-        {/* Recent Transactions */}
-        <motion.div variants={item}>
-          <SectionCard title="Recent Transactions" delay={0.25}>
-            {activityLoading ? (
+            <TabsContent value="transactions" className="m-0 border-none p-0 outline-none">
+              <SectionCard title="Recent Transactions" delay={0.25}>
+                {activityLoading ? (
               <div className="space-y-3">
                 {[1, 2, 3, 4].map((i) => (
                   <Skeleton key={i} className="h-14 w-full" />
@@ -250,8 +351,10 @@ function PortfolioContent() {
                   </div>
                 ))}
               </div>
-            )}
-          </SectionCard>
+                )}
+              </SectionCard>
+            </TabsContent>
+          </Tabs>
         </motion.div>
       </motion.div>
     </AppShell>

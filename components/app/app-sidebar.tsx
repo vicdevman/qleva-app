@@ -43,11 +43,12 @@ import {
 import { cn } from "@/lib/utils";
 
 const mainNav = [
-  { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
+  { title: "Portfolio", url: "/portfolio", icon: Briefcase },
+  // { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
   { title: "Chat", url: "/chat", icon: MessageSquareText },
   { title: "Automations", url: "/automations", icon: Workflow },
-  { title: "Portfolio", url: "/portfolio", icon: Briefcase },
-  { title: "Activity", url: "/activity", icon: Clock },
+  
+  // { title: "Activity", url: "/activity", icon: Clock },
   { title: "Wallets", url: "/wallets", icon: Wallet },
 ];
 
@@ -133,15 +134,15 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="p-3">
+      <SidebarFooter className="">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <SidebarMenuButton
               size="lg"
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
-              <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-                <User className="size-4" />
+              <div className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <User className="size-6" />
               </div>
               <div className="flex flex-col gap-0.5 leading-none group-data-[collapsible=icon]:hidden">
                 <span className="text-sm font-medium">0x1234...abcd</span>
@@ -153,7 +154,7 @@ export function AppSidebar() {
           <DropdownMenuContent side="top" className="w-[--radix-dropdown-menu-trigger-width] min-w-56" align="end">
             <DropdownMenuLabel className="p-0 font-normal">
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-                <div className="flex size-8 items-center justify-center rounded-full bg-primary/10 text-primary">
+                <div className="flex size-8 items-center justify-center rounded-xl bg-primary/10 text-primary">
                   <User className="size-4" />
                 </div>
                 <div className="flex flex-col gap-0.5 leading-none">
@@ -163,12 +164,12 @@ export function AppSidebar() {
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
-              <Link href="/system" className="cursor-pointer w-full flex items-center">
+            {/* <DropdownMenuItem asChild>
+              <Link href="/profile" className="cursor-pointer w-full flex items-center">
                 <Sparkles className="mr-2 size-4" />
-                System
+                Profile
               </Link>
-            </DropdownMenuItem>
+            </DropdownMenuItem> */}
             <DropdownMenuItem asChild>
               <Link href="/notifications" className="cursor-pointer w-full flex items-center">
                 <Bell className="mr-2 size-4" />
