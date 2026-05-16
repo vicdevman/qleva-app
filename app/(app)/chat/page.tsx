@@ -73,7 +73,7 @@ function MessageBubble({ message }: { message: ChatMessage }) {
             className={cn(
               "relative group max-w-[90%] rounded-xl p-4 py-2 text-sm transition-all",
               isUser
-                ? "bg-muted/30 hover:bg-muted/50 border border-border/50"
+                ? "bg-muted/30"
                 : "p-0",
             )}
           >
@@ -298,7 +298,7 @@ function ChatContent() {
           )}
         >
           <div className="mx-auto w-full max-w-3xl">
-            <Card className="overflow-hidden border border-border/50 shadow-[0_20px_50px_rgba(0,0,0,0.3)] backdrop-blur-xl bg-card/60 rounded-2xl">
+            <Card className="overflow-hidden border border-border/50 backdrop-blur-xl bg-card/60 rounded-2xl">
               <CardContent className="p-0">
                 <div className="flex items-end gap-3 px-4">
                   <Textarea
