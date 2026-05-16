@@ -5,9 +5,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
-  MessageSquareText,
+  MessageCirclePlus,
+  AlignEndHorizontal,
   Workflow,
-  Briefcase,
   Clock,
   Wallet,
   Settings,
@@ -18,6 +18,7 @@ import {
   ChevronUp,
   User,
   LogOut,
+  ChevronsUpDown,
 } from "lucide-react";
 import {
   Sidebar,
@@ -41,11 +42,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import Image from "next/image";
+import { Button } from "../ui/button";
 
 const mainNav = [
-  { title: "Portfolio", url: "/portfolio", icon: Briefcase },
+  { title: "Portfolio", url: "/portfolio", icon: AlignEndHorizontal },
   // { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
-  { title: "Chat", url: "/chat", icon: MessageSquareText },
+  { title: "New chat", url: "/chat", icon: MessageCirclePlus },
   { title: "Automations", url: "/automations", icon: Workflow },
 
   // { title: "Activity", url: "/activity", icon: Clock },
@@ -61,27 +64,23 @@ export function AppSidebar() {
     { id: "2", title: "DeFi yield analysis" },
   ]);
 
-  const handleAddChat = () => {
-    const newId = Date.now().toString();
-    setChats([{ id: newId, title: "New Chat Session" }, ...chats]);
-  };
-
   return (
     <Sidebar
       collapsible="icon"
       variant="floating"
       className="border-sidebar-border/50 hidden md:flex"
     >
-      <SidebarHeader className="flex-row items-center gap-3 px-3 py-4">
-        <div className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-          <Sparkles className="size-4" />
-        </div>
+      <SidebarHeader className="flex-row items-start gap-3 px-3 py-4">
+        <Image
+          src="/qleva-brand/new-logo-primary.png"
+          alt="logo"
+          width={500}
+          height={500}
+          className="w-6"
+        />
         <div className="flex flex-col group-data-[collapsible=icon]:hidden">
-          <span className="font-heading text-sm font-semibold tracking-tight">
+          <span className="font-heading text-lg font-semibold tracking-tight">
             Qleva
-          </span>
-          <span className="text-[10px] text-muted-foreground">
-            Smart Wallet OS
           </span>
         </div>
       </SidebarHeader>
@@ -95,7 +94,9 @@ export function AppSidebar() {
             <SidebarMenu className="flex flex-col gap-1">
               {mainNav.map((item) => {
                 const isActive =
-                  pathname === item.url || pathname.startsWith(item.url + "/");
+                  item.url === "/chat"
+                    ? pathname === item.url
+                    : pathname === item.url || pathname.startsWith(item.url + "/");
                 return (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton
@@ -118,17 +119,19 @@ export function AppSidebar() {
         <SidebarSeparator />
 
         <SidebarGroup>
-          <div className="flex items-center justify-between pr-2 group-data-[collapsible=icon]:hidden">
-            <SidebarGroupLabel>Chats</SidebarGroupLabel>
-            <button
-              onClick={handleAddChat}
+          <div className="flex items-center justify-between pr-6 group-data-[collapsible=icon]:hidden">
+            <SidebarGroupLabel>Recent chats</SidebarGroupLabel>
+            <Link
+              href="/chat"
               className="flex size-5 items-center justify-center rounded-md hover:bg-muted text-muted-foreground transition-colors"
             >
-              <Plus className="size-3.5" />
-            </button>
+              <Button size="sm" variant="ghost" className="text-xs">
+                <Plus className="size-3" /> New
+              </Button>
+            </Link>
           </div>
           <SidebarGroupContent>
-            <SidebarMenu>
+            <SidebarMenu className="flex gap-1 mt-2">
               {chats.map((chat) => {
                 const url = `/chat/${chat.id}`;
                 const isActive = pathname === url;
@@ -167,7 +170,7 @@ export function AppSidebar() {
                   user@example.com
                 </span>
               </div>
-              <ChevronUp className="ml-auto size-4 group-data-[collapsible=icon]:hidden" />
+              <ChevronsUpDown className="ml-auto size-4 group-data-[collapsible=icon]:hidden" />
             </SidebarMenuButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent

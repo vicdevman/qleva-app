@@ -127,7 +127,7 @@ export function AppTopbar() {
       </div>
 
       {/* Desktop Sticky Header */}
-      <header className="hidden sticky top-0 z-30 md:flex h-14 items-center gap-3 border-b bg-background/80 px-4 backdrop-blur-md">
+      <header className="hidden sticky top-0 z-30 md:flex h-14 items-center gap-3 border-0 bg-background/80 px-4 backdrop-blur-md">
         <SidebarTrigger />
 
         {/* Command Bar Trigger */}

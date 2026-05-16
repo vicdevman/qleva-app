@@ -13,7 +13,7 @@ import {
   ArrowRight,
   HelpCircle,
   BookOpen,
-  MessageSquareText,
+  MessageCirclePlus,
 } from "lucide-react";
 import { AppShell } from "@/components/app/app-shell";
 import { SectionCard } from "@/components/shared/section-card";
@@ -38,7 +38,11 @@ const container = {
 
 const item = {
   hidden: { opacity: 0, y: 12 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: "easeOut" as const } },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.35, ease: "easeOut" as const },
+  },
 };
 
 function HelpContent() {
@@ -46,11 +50,18 @@ function HelpContent() {
 
   return (
     <AppShell>
-      <motion.div variants={container} initial="hidden" animate="show" className="space-y-6">
+      <motion.div
+        variants={container}
+        initial="hidden"
+        animate="show"
+        className="space-y-6"
+      >
         {/* Header */}
         <motion.div variants={item} className="flex items-center gap-3">
           <div>
-            <h1 className="font-heading text-2xl font-semibold tracking-tight">AI Memory & Help</h1>
+            <h1 className="font-heading text-2xl font-semibold tracking-tight">
+              AI Memory & Help
+            </h1>
             <p className="text-sm text-muted-foreground">
               What Qleva knows, remembers, and suggests for you
             </p>
@@ -75,11 +86,15 @@ function HelpContent() {
                       className="flex items-center gap-3 rounded-lg border p-3"
                     >
                       <div className="flex size-9 items-center justify-center rounded-full bg-primary/10 text-primary">
-                        {iconMap[pref.icon as keyof typeof iconMap] || <Sparkles className="size-4" />}
+                        {iconMap[pref.icon as keyof typeof iconMap] || (
+                          <Sparkles className="size-4" />
+                        )}
                       </div>
                       <div className="flex-1">
                         <p className="text-sm font-medium">{pref.label}</p>
-                        <p className="text-xs text-muted-foreground">{pref.value}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {pref.value}
+                        </p>
                       </div>
                       <Badge variant="secondary" className="text-[10px]">
                         Auto
@@ -113,7 +128,9 @@ function HelpContent() {
                           Apply
                         </Button>
                       </div>
-                      <p className="mt-1 text-xs text-muted-foreground">{style.description}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {style.description}
+                      </p>
                     </div>
                   ))}
                 </div>
@@ -164,7 +181,7 @@ function HelpContent() {
                   progress: 100,
                 },
                 {
-                  icon: <MessageSquareText className="size-5" />,
+                  icon: <MessageCirclePlus className="size-5" />,
                   title: "Chat Commands",
                   desc: "Master conversational trading",
                   progress: 60,
@@ -186,7 +203,9 @@ function HelpContent() {
                     </div>
                     <div>
                       <p className="text-sm font-medium">{tutorial.title}</p>
-                      <p className="text-xs text-muted-foreground">{tutorial.desc}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {tutorial.desc}
+                      </p>
                     </div>
                     <div>
                       <div className="flex items-center justify-between text-[10px] text-muted-foreground">

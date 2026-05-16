@@ -10,12 +10,9 @@ import "./globals.css";
 import { cn } from "@/lib/utils";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
-const dmSansHeading = DM_Sans({
-  subsets: ["latin"],
-  variable: "--font-heading",
-});
+const dmSansHeading = DM_Sans({subsets:['latin'],variable:'--font-heading'});
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
+const inter = Inter({subsets:['latin'],variable:'--font-sans'});
 
 const geistSans = Geist({
   variable: "--font-geist-sans",

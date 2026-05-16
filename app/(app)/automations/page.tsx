@@ -341,7 +341,7 @@ function AutomationsContent() {
         </motion.div>
 
         {/* Automation Cards */}
-        <div className="space-y-3">
+        {/* <div className="space-y-3">
           {isLoading ? (
             [1, 2, 3, 4].map((i) => (
               <Skeleton key={i} className="h-48 w-full rounded-xl" />
@@ -358,7 +358,9 @@ function AutomationsContent() {
               ))}
             </motion.div>
           )}
-        </div>
+        </div> */}
+
+        <div className="text-center mt-10">Under contruction</div>
       </motion.div>
     </AppShell>
   );

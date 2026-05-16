@@ -19,25 +19,61 @@ import {
   TrendingUp,
   Bell,
   Settings,
-  MessageSquareText,
+  MessageCirclePlus,
 } from "lucide-react";
 import { useUIStore } from "@/stores/ui-store";
 import { useRouter } from "next/navigation";
 
 const quickActions = [
   { label: "Buy ETH", icon: <TrendingUp className="size-4" />, shortcut: "⌘B" },
-  { label: "Bridge Funds", icon: <ArrowRight className="size-4" />, shortcut: "⌘R" },
-  { label: "Pause Automations", icon: <Workflow className="size-4" />, shortcut: "⌘P" },
-  { label: "Check Balance", icon: <Wallet className="size-4" />, shortcut: "⌘L" },
+  {
+    label: "Bridge Funds",
+    icon: <ArrowRight className="size-4" />,
+    shortcut: "⌘R",
+  },
+  {
+    label: "Pause Automations",
+    icon: <Workflow className="size-4" />,
+    shortcut: "⌘P",
+  },
+  {
+    label: "Check Balance",
+    icon: <Wallet className="size-4" />,
+    shortcut: "⌘L",
+  },
 ];
 
 const navItems = [
-  { label: "Dashboard", icon: <TrendingUp className="size-4" />, href: "/dashboard" },
-  { label: "Chat", icon: <MessageSquareText className="size-4" />, href: "/chat" },
-  { label: "Automations", icon: <Workflow className="size-4" />, href: "/automations" },
-  { label: "Portfolio", icon: <Wallet className="size-4" />, href: "/portfolio" },
-  { label: "Notifications", icon: <Bell className="size-4" />, href: "/notifications" },
-  { label: "Settings", icon: <Settings className="size-4" />, href: "/settings" },
+  {
+    label: "Dashboard",
+    icon: <TrendingUp className="size-4" />,
+    href: "/dashboard",
+  },
+  {
+    label: "Chat",
+    icon: <MessageCirclePlus className="size-4" />,
+    href: "/chat",
+  },
+  {
+    label: "Automations",
+    icon: <Workflow className="size-4" />,
+    href: "/automations",
+  },
+  {
+    label: "Portfolio",
+    icon: <Wallet className="size-4" />,
+    href: "/portfolio",
+  },
+  {
+    label: "Notifications",
+    icon: <Bell className="size-4" />,
+    href: "/notifications",
+  },
+  {
+    label: "Settings",
+    icon: <Settings className="size-4" />,
+    href: "/settings",
+  },
 ];
 
 export function CommandBar() {

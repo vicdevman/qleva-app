@@ -5,9 +5,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
-  MessageSquareText,
+  MessageCirclePlus,
   Workflow,
-  Briefcase,
+  AlignEndHorizontal,
   Clock,
   Wallet,
   Settings,
@@ -32,8 +32,8 @@ import { Separator } from "@/components/ui/separator";
 
 const mainNav = [
   // { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
-  { title: "Portfolio", url: "/portfolio", icon: Briefcase },
-  { title: "Chat", url: "/chat", icon: MessageSquareText },
+  { title: "Portfolio", url: "/portfolio", icon: AlignEndHorizontal },
+  { title: "New chat", url: "/chat", icon: MessageCirclePlus },
   { title: "Automations", url: "/automations", icon: Workflow },
 
   // { title: "Activity", url: "/activity", icon: Clock },
@@ -84,7 +84,9 @@ export function MobileMenuDrawer({
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             {mainNav.map((item) => {
               const isActive =
-                pathname === item.url || pathname.startsWith(item.url + "/");
+                item.url === "/chat"
+                  ? pathname === item.url
+                  : pathname === item.url || pathname.startsWith(item.url + "/");
               return (
                 <DrawerClose asChild key={item.title}>
                   <Link
