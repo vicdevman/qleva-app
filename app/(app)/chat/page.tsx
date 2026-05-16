@@ -58,7 +58,7 @@ function MessageBubble({ message }: { message: ChatMessage }) {
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       className={cn(
-        "flex w-full flex-col gap-2 px-4 py-6 md:px-6",
+        "flex w-full flex-col gap-2 px-0 py-2 md:px-6",
         isUser ? "items-end" : "items-start",
       )}
     >
@@ -137,13 +137,13 @@ function MessageBubble({ message }: { message: ChatMessage }) {
                   </div>
                   <div className="mt-4 flex gap-2">
                     <Button
-                      size="sm"
+                      size="lg"
                       className="flex-1 h-8 text-[11px] font-bold"
                     >
                       Confirm
                     </Button>
                     <Button
-                      size="sm"
+                      size="lg"
                       variant="outline"
                       className="flex-1 h-8 text-[11px]"
                     >
@@ -272,7 +272,7 @@ function ChatContent() {
             </motion.div>
           ) : (
             <div className="flex-1 overflow-y-auto scroll-smooth no-scrollbar">
-              <div className="mx-auto max-w-3xl pb-40">
+              <div className="mx-auto max-w-4xl pb-40">
                 {messages.map((msg) => (
                   <MessageBubble key={msg.id} message={msg} />
                 ))}
@@ -293,19 +293,19 @@ function ChatContent() {
         {/* Input Area */}
         <div
           className={cn(
-            "fixed md:absolute left-0 right-0 z-20 px-4 transition-all duration-1000 ease-[cubic-bezier(0.23,1,0.32,1)]",
-            hasMessages ? "bottom-2 md:bottom-1" : "top-1/2 -translate-y-1/2"
+            "fixed md:absolute left-0 right-0 z-20 px-3 transition-all duration-1000 ease-[cubic-bezier(0.23,1,0.32,1)]",
+            hasMessages ? "bottom-3 md:bottom-1" : "top-1/2 -translate-y-1/2"
           )}
         >
           <div className="mx-auto w-full max-w-3xl">
-            <Card className="overflow-hidden border border-border/50 shadow-[0_20px_50px_rgba(0,0,0,0.3)] backdrop-blur-xl bg-card/60 rounded-3xl">
+            <Card className="overflow-hidden border border-border/50 shadow-[0_20px_50px_rgba(0,0,0,0.3)] backdrop-blur-xl bg-card/60 rounded-2xl">
               <CardContent className="p-0">
                 <div className="flex items-end gap-3 px-4">
                   <Textarea
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     placeholder="Ask Qleva anything..."
-                    className="max-h-[150px] overflow-y-auto text-sm focus-visible:ring-0 rounded-xs resize-none p-1 custom-scrollbar"
+                    className="max-h-[150px] -mt-2 overflow-y-auto focus-visible:ring-0 rounded-xs resize-none p-1 custom-scrollbar"
                     style={{
                       backgroundColor: "transparent",
                       border: "0",

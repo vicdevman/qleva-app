@@ -228,7 +228,7 @@ function DashboardContent() {
         </div>
 
         {/* Middle Row */}
-        <div className="grid gap-4 lg:grid-cols-3">
+        <div className="grid gap-4 lg:grid-cols-2">
           {/* Top Assets */}
           <motion.div variants={item}>
             <SectionCard title="Top Assets" delay={0.2}>
@@ -319,7 +319,7 @@ function DashboardContent() {
           </motion.div>
 
           {/* AI Suggestions */}
-          <motion.div variants={item}>
+          {/* <motion.div variants={item}>
             <SectionCard
               title="AI Insights"
               description="Personalized suggestions"
@@ -353,7 +353,7 @@ function DashboardContent() {
                 </div>
               )}
             </SectionCard>
-          </motion.div>
+          </motion.div> */}
         </div>
 
         {/* Bottom Row */}
