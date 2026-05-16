@@ -50,7 +50,7 @@ export function MobileMenuDrawer({ open, setOpen }: { open: boolean, setOpen: (o
 
   return (
     <Drawer open={open} onOpenChange={setOpen}>
-      <DrawerContent className="h-[85vh] rounded-xl bg-background/95 backdrop-blur-xl border-t border-border/50">
+      <DrawerContent className="h-[85vh] outline-0 bg-background/95 backdrop-blur-xl border-t border-border/50">
         <DrawerHeader className="pb-2">
           {/* <div className="flex items-center gap-2 mb-4">
             <div className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
