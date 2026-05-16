@@ -123,7 +123,7 @@ function WalletsContent() {
               Manage wallet relationships and funding flows
             </p>
           </div>
-          <Button size="sm" className="gap-2">
+          <Button size="lg" className="gap-2">
             <Link2 className="size-3.5" />
             Connect Wallet
           </Button>

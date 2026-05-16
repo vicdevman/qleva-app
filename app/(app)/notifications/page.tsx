@@ -70,7 +70,7 @@ function NotificationsContent() {
         {/* Stats */}
         <motion.div variants={item} className="grid gap-4 sm:grid-cols-4">
           <Card>
-            <CardContent className="flex items-center gap-3 pt-4">
+            <CardContent className="flex items-center gap-3 ">
               <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10">
                 <Bell className="size-4 text-primary" />
               </div>
@@ -81,7 +81,7 @@ function NotificationsContent() {
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="flex items-center gap-3 pt-4">
+            <CardContent className="flex items-center gap-3 ">
               <div className="flex size-9 items-center justify-center rounded-lg bg-green-500/10">
                 <CheckCircle2 className="size-4 text-green-500" />
               </div>
@@ -94,7 +94,7 @@ function NotificationsContent() {
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="flex items-center gap-3 pt-4">
+            <CardContent className="flex items-center gap-3 ">
               <div className="flex size-9 items-center justify-center rounded-lg bg-red-500/10">
                 <XCircle className="size-4 text-red-500" />
               </div>
@@ -107,7 +107,7 @@ function NotificationsContent() {
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="flex items-center gap-3 pt-4">
+            <CardContent className="flex items-center gap-3 ">
               <div className="flex size-9 items-center justify-center rounded-lg bg-yellow-500/10">
                 <Clock className="size-4 text-yellow-500" />
               </div>

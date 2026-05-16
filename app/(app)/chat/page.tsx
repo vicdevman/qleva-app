@@ -197,7 +197,7 @@ function ChatContent() {
   const scrollRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
-    // if (initialMessages) setMessages(initialMessages);
+    if (initialMessages) setMessages(initialMessages);
   }, [initialMessages]);
 
   React.useEffect(() => {
@@ -276,8 +276,8 @@ function ChatContent() {
                 {messages.map((msg) => (
                   <MessageBubble key={msg.id} message={msg} />
                 ))}
-                {!isTyping && (
-                  <div className="flex items-center gap-2 animate-pulse max-w-3xl mx-auto pl-6">
+                {isTyping && (
+                  <div className="flex items-center gap-2 animate-pulse max-w-3xl mx-auto pl-4">
                  <Brain className="size-4 text-primary" />
                     <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60">
                       Qleva is thinking...
