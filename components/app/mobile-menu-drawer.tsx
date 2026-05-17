@@ -17,7 +17,11 @@ import {
   User,
   LogOut,
   Sparkles,
+  Moon,
+  Sun,
 } from "lucide-react";
+import { useTheme } from "next-themes";
+import { usePrivy } from "@privy-io/react-auth";
 import {
   Drawer,
   DrawerClose,
@@ -48,6 +52,45 @@ export function MobileMenuDrawer({
   setOpen: (open: boolean) => void;
 }) {
   const pathname = usePathname();
+  const { setTheme, theme } = useTheme();
+  const { user, logout } = usePrivy();
+
+  // Extract address
+  const activeAddress = user?.wallet?.address || (user as any)?.wallets?.[0]?.address || "";
+  const abbreviatedAddress = activeAddress
+    ? `${activeAddress.slice(0, 6)}...${activeAddress.slice(-4)}`
+    : "No Wallet Linked";
+
+  // Extract avatar
+  const avatarUrl = (user?.google as any)?.profilePictureUrl || (user?.twitter as any)?.profilePictureUrl || (user?.github as any)?.profilePictureUrl || "";
+
+  // Extract name/email from social oauth
+  const googleAccount = user?.google as any;
+  const twitterAccount = user?.twitter as any;
+  const emailAccount = user?.email as any;
+  const githubAccount = user?.github as any;
+
+  let displayName = "Qleva User";
+  let displaySub = "";
+
+  if (user) {
+    if (googleAccount?.name) {
+      displayName = googleAccount.name;
+      displaySub = googleAccount.email || emailAccount?.address || abbreviatedAddress;
+    } else if (twitterAccount?.name) {
+      displayName = twitterAccount.name;
+      displaySub = `@${twitterAccount.username}`;
+    } else if (githubAccount?.name) {
+      displayName = githubAccount.name;
+      displaySub = githubAccount.username || emailAccount?.address || abbreviatedAddress;
+    } else if (emailAccount?.address) {
+      displayName = emailAccount.address.split("@")[0];
+      displaySub = emailAccount.address;
+    } else if (activeAddress) {
+      displayName = abbreviatedAddress;
+      displaySub = "Wallet Connected";
+    }
+  }
 
   // Dummy chat data matching the sidebar
   const [chats] = React.useState([
@@ -57,24 +100,19 @@ export function MobileMenuDrawer({
 
   return (
     <Drawer open={open} onOpenChange={setOpen}>
-      <DrawerContent className="h-[85vh] outline-0 bg-background/95 backdrop-blur-xl border-t border-border/50">
+      <DrawerContent className="h-[85vh] outline-0 bg-background/95 backdrop-blur-xl border-t border-border">
         <DrawerHeader className="pb-2">
-          {/* <div className="flex items-center gap-2 mb-4">
-            <div className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <Sparkles className="size-4" />
-            </div>
-            <div className="flex flex-col text-left">
-              <span className="font-heading text-sm font-semibold tracking-tight">Qleva</span>
-              <span className="text-[10px] text-muted-foreground">Smart Wallet OS</span>
-            </div>
-          </div> */}
+          <div className="flex items-center justify-between mb-4 px-1">
+            <span className="font-heading text-sm font-bold tracking-wider text-muted-foreground uppercase">
+              Navigation Menu
+            </span>
+          </div>
 
-          {/* Search Bar Sneaked In */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
             <Input
               placeholder="Search or command..."
-              className="pl-9 bg-muted/50 border-border/50 py-6"
+              className="pl-9 bg-muted/50 border-border py-5"
             />
           </div>
         </DrawerHeader>
@@ -94,7 +132,7 @@ export function MobileMenuDrawer({
                     className={`flex flex-col items-center justify-center gap-2 rounded-xl p-4 text-sm font-medium transition-all ${
                       isActive
                         ? "bg-primary text-primary-foreground shadow-md scale-[1.02]"
-                        : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground border border-border/50"
+                        : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground border border-border"
                     }`}
                   >
                     <item.icon className="size-6" />
@@ -122,11 +160,12 @@ export function MobileMenuDrawer({
                       href={url}
                       className={`flex items-center gap-4 rounded-xl px-4 py-3.5 text-sm font-medium transition-all active:scale-[0.98] ${
                         isActive
-                          ? "bg-primary/10 text-primary border border-primary/20"
-                          : "bg-muted/30 text-muted-foreground hover:bg-muted hover:text-foreground border border-border/30"
+                          ? "bg-primary text-primary-foreground border border-primary/20 shadow-md"
+                          : "bg-muted/30 text-muted-foreground hover:bg-muted hover:text-foreground border border-border"
                       }`}
                     >
                       <span className="truncate">{chat.title}</span>
+                      {isActive && <div className="ml-auto size-2 rounded-full bg-primary-foreground animate-pulse" />}
                     </Link>
                   </DrawerClose>
                 );
@@ -136,64 +175,6 @@ export function MobileMenuDrawer({
 
           <Separator className="bg-border/50" />
 
-          {/* User Profile & System */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                <User className="size-6" />
-              </div>
-              <div className="flex flex-col leading-none">
-                <span className="text-base font-semibold text-foreground">
-                  0x1234...abcd
-                </span>
-                <span className="text-sm text-muted-foreground truncate max-w-[140px]">
-                  user@example.com
-                </span>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <DrawerClose asChild>
-                <Link
-                  href="/notifications"
-                  className="flex items-center gap-3 rounded-xl p-4 text-sm font-medium bg-muted/30 text-muted-foreground hover:bg-muted border border-border/30 transition-all active:scale-[0.98]"
-                >
-                  <div className="p-2 rounded-xl bg-background/50 text-foreground">
-                    <Bell className="size-4" />
-                  </div>
-                  Notifications
-                </Link>
-              </DrawerClose>
-              <DrawerClose asChild>
-                <Link
-                  href="/settings"
-                  className="flex items-center gap-3 rounded-xl p-4 text-sm font-medium bg-muted/30 text-muted-foreground hover:bg-muted border border-border/30 transition-all active:scale-[0.98]"
-                >
-                  <div className="p-2 rounded-xl bg-background/50 text-foreground">
-                    <Settings className="size-4" />
-                  </div>
-                  Settings
-                </Link>
-              </DrawerClose>
-              <DrawerClose asChild>
-                <Link
-                  href="/help"
-                  className="flex items-center gap-3 rounded-xl p-4 text-sm font-medium bg-muted/30 text-muted-foreground hover:bg-muted border border-border/30 transition-all active:scale-[0.98]"
-                >
-                  <div className="p-2 rounded-xl bg-background/50 text-foreground">
-                    <HelpCircle className="size-4" />
-                  </div>
-                  Help
-                </Link>
-              </DrawerClose>
-            </div>
-
-            <DrawerClose asChild>
-              <button className="w-full flex items-center justify-center gap-3 rounded-xl p-4 mt-2 text-sm font-medium text-destructive bg-destructive/5 hover:bg-destructive/10 border border-destructive/10 transition-all active:scale-[0.98]">
-                <LogOut className="size-5" /> Log out
-              </button>
-            </DrawerClose>
-          </div>
         </div>
       </DrawerContent>
     </Drawer>

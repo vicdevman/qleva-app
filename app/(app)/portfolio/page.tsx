@@ -288,14 +288,14 @@ function PortfolioContent() {
         {/* Assets & Activity Tabs */}
         <motion.div variants={item} className="mt-4 min-w-0">
           <Tabs defaultValue="assets" className="w-full">
-            <div className="flex items-center justify-between mb-4 overflow-x-auto pb-2">
-              <TabsList className="w-full justify-start sm:w-auto h-auto">
-                <TabsTrigger value="assets" className="py-2.5 px-4 text-sm">
+            <div className="flex items-center justify-between mt-2 overflow-x-auto pb-2">
+              <TabsList className="w-full justify-start sm:w-auto h-auto rounded-xl bg-muted/40">
+                <TabsTrigger value="assets" className="py-3.5 px-6 text-[15px] font-semibold rounded-xl">
                   Assets
                 </TabsTrigger>
                 <TabsTrigger
                   value="transactions"
-                  className="py-2.5 px-4 text-sm"
+                  className="py-3.5 px-6 text-[15px] font-semibold rounded-xl"
                 >
                   Recent Transactions
                 </TabsTrigger>
@@ -306,7 +306,7 @@ function PortfolioContent() {
               value="assets"
               className="m-0 border-none p-0 outline-none"
             >
-              <SectionCard title="Assets" delay={0.2}>
+              <motion.div initial={{opacity:0}} animate={{opacity:1}} transition={{delay:0.2}} className="pt-2">
                 {isLoading ? (
                   <div className="space-y-3">
                     {[1, 2, 3].map((i) => (
@@ -461,14 +461,14 @@ function PortfolioContent() {
                     </div>
                   </div>
                 )}
-              </SectionCard>
+              </motion.div>
             </TabsContent>
 
             <TabsContent
               value="transactions"
               className="m-0 border-none p-0 outline-none"
             >
-              <SectionCard title="Recent Transactions" delay={0.25}>
+              <motion.div initial={{opacity:0}} animate={{opacity:1}} transition={{delay:0.25}} className="pt-2">
                 {activityLoading ? (
                   <div className="space-y-3">
                     {[1, 2, 3, 4].map((i) => (
@@ -517,7 +517,7 @@ function PortfolioContent() {
                     ))}
                   </div>
                 )}
-              </SectionCard>
+              </motion.div>
             </TabsContent>
           </Tabs>
         </motion.div>

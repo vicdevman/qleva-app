@@ -80,7 +80,7 @@ function WalletRelationshipVisualizer() {
           <Zap className="size-5 text-primary" />
         </div>
         <div>
-          <p className="text-sm font-medium">Qleva Smart Wallet</p>
+          <p className="text-sm font-medium">Smart Wallet</p>
           <p className="text-xs text-muted-foreground">Smart Contract · 0x3e8C...1a2B</p>
         </div>
         <div className="ml-4 text-right">
@@ -101,8 +101,8 @@ function WalletRelationshipVisualizer() {
 
       {/* Actions */}
       <div className="flex flex-wrap justify-center gap-2">
-        {["Swap", "Bridge", "DCA", "Rebalance"].map((action) => (
-          <Badge key={action} variant="outline" className="gap-1 px-3 py-1">
+        {["Swap", "DCA", "Rebalance"].map((action) => (
+          <Badge key={action} variant="secondary" className="gap-1 px-4 py-4">
             <CheckCircle2 className="size-3 text-green-500" />
             {action}
           </Badge>
@@ -127,17 +127,13 @@ function WalletsContent() {
               Manage wallet relationships and funding flows
             </p>
           </div>
-          <Button size="lg" className="gap-2">
-            <Link2 className="size-3.5" />
-            Connect Wallet
-          </Button>
         </motion.div>
 
         {/* Wallet Relationship Visualizer */}
         <motion.div variants={item}>
           <Card className="overflow-hidden border border-border/50 bg-card/50">
             <div 
-              className="flex items-center justify-between px-6 cursor-pointer"
+              className="flex items-center justify-between px-4 cursor-pointer"
               onClick={() => setIsArchitectureExpanded(!isArchitectureExpanded)}
             >
               <div>
@@ -156,7 +152,7 @@ function WalletsContent() {
                   exit={{ height: 0, opacity: 0 }}
                   transition={{ duration: 0.3, ease: "easeInOut" }}
                 >
-                  <div className="p-2">
+                  <div className="p-4">
                     <WalletRelationshipVisualizer />
                   </div>
                 </motion.div>
@@ -194,38 +190,38 @@ function WalletsContent() {
 
                   <div className="flex items-end justify-between">
                     <div>
-                      <p className="text-xs text-muted-foreground">Balance</p>
-                      <p className="font-heading text-2xl font-semibold">
+                      {/* <p className="text-xs text-muted-foreground">Balance</p> */}
+                      <p className="font-heading text-3xl font-semibold">
                         {formatCurrency(wallet.balance)}
                       </p>
                     </div>
-                    <div className="flex items-center gap-1.5">
+                    {/* <div className="flex items-center gap-1.5">
                       <span
                         className="size-2 rounded-full"
                         style={{ backgroundColor: wallet.chainColor }}
                       />
                       <span className="text-xs text-muted-foreground">{wallet.chain}</span>
-                    </div>
+                    </div> */}
                   </div>
 
                   <div className="flex gap-2">
                     {wallet.type === "connected" ? (
                       <>
-                        <Button variant="outline" size="lg" className="flex-1 gap-1.5">
+                        <Button  size="lg" className="flex-1 gap-1.5 py-5">
                           <ArrowDownRight className="size-3.5" />
-                          Fund lgart Wallet
+                          Fund Your Smart Wallet
                         </Button>
-                        <Button variant="ghost" size="lg" className="gap-1.5">
+                        <Button variant="secondary" size="lg" className="gap-1.5 p-5">
                           <Copy className="size-3.5" />
                         </Button>
                       </>
                     ) : (
                       <>
-                        <Button variant="outline" size="lg" className="flex-1 gap-1.5">
+                        <Button variant="outline" size="lg" className="flex-1 gap-1.5 py-5">
                           <ArrowUpRight className="size-3.5" />
                           Withdraw
                         </Button>
-                        <Button variant="ghost" size="lg" className="gap-1.5">
+                        <Button variant="secondary" size="lg" className="gap-1.5 p-5">
                           <ExternalLink className="size-3.5" />
                         </Button>
                       </>
@@ -242,8 +238,8 @@ function WalletsContent() {
           <SectionCard title="Permissions & Approvals" delay={0.3}>
             <div className="space-y-3">
               {[
-                { token: "USDC", spender: "Qleva Smart Wallet", amount: "Unlimited", chain: "Base" },
-                { token: "ETH", spender: "Qleva Smart Wallet", amount: "Unlimited", chain: "Base" },
+                { token: "USDC", spender: "Smart Wallet", amount: "Unlimited", chain: "Base" },
+                { token: "ETH", spender: "Smart Wallet", amount: "Unlimited", chain: "Base" },
                 { token: "USDC", spender: "Bridge Contract", amount: "$1,000/day", chain: "Base" },
               ].map((perm, i) => (
                 <div

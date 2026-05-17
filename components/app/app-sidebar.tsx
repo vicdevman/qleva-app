@@ -3,6 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { usePrivy } from "@privy-io/react-auth";
 import {
   LayoutDashboard,
   MessageCirclePlus,
@@ -19,7 +20,10 @@ import {
   User,
   LogOut,
   ChevronsUpDown,
+  Moon,
+  Sun,
 } from "lucide-react";
+import { useTheme } from "next-themes";
 import {
   Sidebar,
   SidebarContent,
@@ -57,6 +61,45 @@ const mainNav = [
 
 export function AppSidebar() {
   const pathname = usePathname();
+  const { setTheme, theme } = useTheme();
+  const { user, logout } = usePrivy();
+
+  // Extract address
+  const activeAddress = user?.wallet?.address || (user as any)?.wallets?.[0]?.address || "";
+  const abbreviatedAddress = activeAddress
+    ? `${activeAddress.slice(0, 6)}...${activeAddress.slice(-4)}`
+    : "No Wallet Linked";
+
+  // Extract avatar
+  const avatarUrl = (user?.google as any)?.profilePictureUrl || (user?.twitter as any)?.profilePictureUrl || (user?.github as any)?.profilePictureUrl || "";
+
+  // Extract name/email from social oauth
+  const googleAccount = user?.google as any;
+  const twitterAccount = user?.twitter as any;
+  const emailAccount = user?.email as any;
+  const githubAccount = user?.github as any;
+
+  let displayName = "Qleva User";
+  let displaySub = "";
+
+  if (user) {
+    if (googleAccount?.name) {
+      displayName = googleAccount.name;
+      displaySub = googleAccount.email || emailAccount?.address || abbreviatedAddress;
+    } else if (twitterAccount?.name) {
+      displayName = twitterAccount.name;
+      displaySub = `@${twitterAccount.username}`;
+    } else if (githubAccount?.name) {
+      displayName = githubAccount.name;
+      displaySub = githubAccount.username || emailAccount?.address || abbreviatedAddress;
+    } else if (emailAccount?.address) {
+      displayName = emailAccount.address.split("@")[0];
+      displaySub = emailAccount.address;
+    } else if (activeAddress) {
+      displayName = abbreviatedAddress;
+      displaySub = "Wallet Connected";
+    }
+  }
 
   // Dummy chat data for the new Chats section
   const [chats, setChats] = React.useState([
@@ -161,13 +204,17 @@ export function AppSidebar() {
               size="lg"
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
-              <div className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                <User className="size-6" />
+              <div className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary overflow-hidden">
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt="Avatar" className="size-full object-cover" />
+                ) : (
+                  <User className="size-6" />
+                )}
               </div>
               <div className="flex flex-col gap-0.5 leading-none group-data-[collapsible=icon]:hidden">
-                <span className="text-sm font-medium">0x1234...abcd</span>
+                <span className="text-sm font-medium">{displayName}</span>
                 <span className="text-xs text-muted-foreground truncate max-w-[140px]">
-                  user@example.com
+                  {displaySub}
                 </span>
               </div>
               <ChevronsUpDown className="ml-auto size-4 group-data-[collapsible=icon]:hidden" />
@@ -180,13 +227,17 @@ export function AppSidebar() {
           >
             <DropdownMenuLabel className="p-0 font-normal">
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-                <div className="flex size-8 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                  <User className="size-4" />
+                <div className="flex size-8 items-center justify-center rounded-xl bg-primary/10 text-primary overflow-hidden">
+                  {avatarUrl ? (
+                    <img src={avatarUrl} alt="Avatar" className="size-full object-cover" />
+                  ) : (
+                    <User className="size-4" />
+                  )}
                 </div>
                 <div className="flex flex-col gap-0.5 leading-none">
-                  <span className="font-medium">0x1234...abcd</span>
+                  <span className="font-medium">{displayName}</span>
                   <span className="text-xs text-muted-foreground">
-                    user@example.com
+                    {displaySub}
                   </span>
                 </div>
               </div>
@@ -225,8 +276,19 @@ export function AppSidebar() {
                 Help & Memory
               </Link>
             </DropdownMenuItem>
+            <DropdownMenuItem 
+              className="cursor-pointer w-full flex items-center"
+              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            >
+              <Sun className="mr-2 size-4 hidden dark:block" />
+              <Moon className="mr-2 size-4 block dark:hidden" />
+              Toggle Theme
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-destructive focus:text-destructive cursor-pointer">
+            <DropdownMenuItem 
+              className="text-destructive focus:text-destructive cursor-pointer"
+              onClick={() => logout()}
+            >
               <LogOut className="mr-2 size-4" />
               Log out
             </DropdownMenuItem>

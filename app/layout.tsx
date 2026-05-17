@@ -9,6 +9,7 @@ import {
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import Providers from "./providers";
 
 const dmSansHeading = DM_Sans({subsets:['latin'],variable:'--font-heading'});
 
@@ -37,8 +38,9 @@ export default function RootLayout({
   return (
     <html
       lang="en"
+      suppressHydrationWarning
       className={cn(
-        "h-full dark",
+        "h-full",
         "antialiased",
         geistSans.variable,
         geistMono.variable,
@@ -48,7 +50,7 @@ export default function RootLayout({
       )}
     >
       <body className="min-h-full flex flex-col">
-        <TooltipProvider>{children}</TooltipProvider>
+        <TooltipProvider><Providers>{children}</Providers></TooltipProvider>
       </body>
     </html>
   );

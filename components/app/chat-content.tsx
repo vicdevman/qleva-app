@@ -1,5 +1,7 @@
 "use client";
 import * as React from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import {
@@ -87,22 +89,116 @@ function MessageBubble({ message }: { message: ChatMessage }) {
                 />
               </div>
             )}
-            <div className="whitespace-pre-wrap leading-relaxed break-words">
-              {message.content.includes("```") ? (
-                <div className="my-3 overflow-x-auto rounded-xl bg-zinc-950 p-4 font-mono text-[11px] leading-relaxed text-emerald-400 border border-white/5">
-                  <div className="flex items-center justify-between mb-2 text-[10px] text-zinc-500 uppercase tracking-widest font-bold">
-                    <span>Output</span>
-                    <div className="flex gap-1.5">
-                      <div className="size-2 rounded-full bg-zinc-800" />
-                      <div className="size-2 rounded-full bg-zinc-800" />
-                    </div>
-                  </div>
-                  {message.content.replace(/```/g, "")}
-                </div>
-              ) : (
-                message.content
-              )}
-            </div>
+            {isUser ? (
+              <div className="whitespace-pre-wrap leading-relaxed break-words">
+                {message.content}
+              </div>
+            ) : (
+              <div className="break-words max-w-full">
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  components={{
+                    h1: ({ children }) => (
+                      <h1 className="text-xl font-bold mt-4 mb-2 text-foreground">
+                        {children}
+                      </h1>
+                    ),
+                    h2: ({ children }) => (
+                      <h2 className="text-lg font-bold mt-4 mb-2 text-foreground">
+                        {children}
+                      </h2>
+                    ),
+                    h3: ({ children }) => (
+                      <h3 className="text-base font-semibold mt-3 mb-2 text-foreground">
+                        {children}
+                      </h3>
+                    ),
+                    p: ({ children }) => (
+                      <p className="text-sm leading-relaxed text-foreground/80 mb-3 last:mb-0">
+                        {children}
+                      </p>
+                    ),
+                    ul: ({ children }) => (
+                      <ul className="list-disc list-outside space-y-1 mb-3 ml-4 pl-2 text-sm text-foreground/80">
+                        {children}
+                      </ul>
+                    ),
+                    ol: ({ children }) => (
+                      <ol className="list-decimal list-outside space-y-1 mb-3 ml-4 pl-2 text-sm text-foreground/80">
+                        {children}
+                      </ol>
+                    ),
+                    li: ({ children }) => <li className="pl-1">{children}</li>,
+                    blockquote: ({ children }) => (
+                      <blockquote className="border-l-2 border-primary/60 bg-primary/5 pl-3 pr-2 py-2 my-3 rounded-r-md italic text-foreground/70 text-sm">
+                        {children}
+                      </blockquote>
+                    ),
+                    code: ({ inline, className, children, ...props }: any) =>
+                      inline ? (
+                        <code className="bg-foreground/5 text-primary font-mono text-xs px-1 py-0.5 rounded">
+                          {children}
+                        </code>
+                      ) : (
+                        <div className="my-3 overflow-hidden rounded-xl bg-zinc-950 border border-white/10 w-full max-w-full overflow-x-auto">
+                          <div className="flex items-center justify-between px-4 py-2 bg-zinc-900 border-b border-white/5 min-w-max">
+                            <span className="text-[10px] text-zinc-400 uppercase tracking-widest font-bold">Code</span>
+                            <div className="flex gap-1.5">
+                              <div className="size-2 rounded-full bg-zinc-700" />
+                              <div className="size-2 rounded-full bg-zinc-700" />
+                              <div className="size-2 rounded-full bg-zinc-700" />
+                            </div>
+                          </div>
+                          <pre className="p-4 overflow-x-auto min-w-max">
+                            <code className="font-mono text-xs leading-relaxed text-emerald-400" {...props}>
+                              {children}
+                            </code>
+                          </pre>
+                        </div>
+                      ),
+                    a: ({ href, children }) => (
+                      <a
+                        href={href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary underline underline-offset-2 hover:text-primary/80 transition-colors"
+                      >
+                        {children}
+                      </a>
+                    ),
+                    strong: ({ children }) => (
+                      <strong className="font-bold text-foreground">
+                        {children}
+                      </strong>
+                    ),
+                    table: ({ children }) => (
+                      <div className="overflow-x-auto w-full my-4 border border-border/30 rounded-lg">
+                        <table className="w-full border-collapse text-sm text-left whitespace-nowrap md:whitespace-normal">
+                          {children}
+                        </table>
+                      </div>
+                    ),
+                    thead: ({ children }) => (
+                      <thead className="bg-muted/50 border-b border-border/30">
+                        {children}
+                      </thead>
+                    ),
+                    th: ({ children }) => (
+                      <th className="px-3 py-2 font-semibold text-foreground">
+                        {children}
+                      </th>
+                    ),
+                    td: ({ children }) => (
+                      <td className="px-3 py-2 text-foreground/80 border-b border-border/10">
+                        {children}
+                      </td>
+                    ),
+                  }}
+                >
+                  {message.content}
+                </ReactMarkdown>
+              </div>
+            )}
           </div>
 
           {message.intentPreview && (
@@ -198,7 +294,7 @@ export function ChatContent({ chatId }: ChatContentProps) {
   const { data: dummyMessages } = useChatMessages();
   const [messages, setMessages] = React.useState<ChatMessage[]>([]);
   const [input, setInput] = React.useState("");
-  const [isTyping, setIsTyping] = React.useState(false);
+  const [streamingAction, setStreamingAction] = React.useState<string | null>(null);
   const [attachedImage, setAttachedImage] = React.useState<string | null>(null);
   const scrollRef = React.useRef<HTMLDivElement>(null);
 
@@ -215,7 +311,7 @@ export function ChatContent({ chatId }: ChatContentProps) {
     if (scrollRef.current) {
       scrollRef.current.scrollIntoView({ behavior: "smooth" });
     }
-  }, [messages, isTyping]);
+  }, [messages, streamingAction]);
 
   const handleSend = async (
     text: string = input,
@@ -244,14 +340,21 @@ export function ChatContent({ chatId }: ChatContentProps) {
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
     setAttachedImage(null);
-    setIsTyping(true);
+    setStreamingAction("Analyzing request intent...");
+
+    setTimeout(() => {
+      setStreamingAction("Checking on-chain liquidity pools...");
+    }, 800);
+
+    setTimeout(() => {
+      setStreamingAction("Simulating optimal transaction route...");
+    }, 1600);
 
     setTimeout(() => {
       const responses = [
-        "I've analyzed your request. I can help you execute that trade on Base.",
-        "That sounds like a solid plan. Should I monitor the price for you?",
-        "I've updated your automations. You'll get a notification when the next one runs.",
-        "Here is the detailed breakdown of your portfolio across chains:\n```\nBase: $2,100.50 (56.3%)\nEthereum: $1,200.25 (32.2%)\nArbitrum: $430.30 (11.5%)\n```",
+        "### Transaction Plan Ready\n\nI've analyzed your request and found the optimal execution route on **Base**.\n\n- **Route**: `USDC` → `WETH`\n- **Estimated Gas**: `$0.45`\n- **Slippage Tolerance**: `0.5%`\n\nWould you like me to proceed with the execution?",
+        "### Portfolio Overview\n\nHere is the detailed breakdown of your portfolio across chains:\n\n| Chain | Balance | Allocation |\n|-------|---------|------------|\n| **Base** | $2,100.50 | 56.3% |\n| **Ethereum** | $1,200.25 | 32.2% |\n| **Arbitrum** | $430.30 | 11.5% |\n\n> *Tip: Consider bridging some of your Ethereum assets to Base to take advantage of lower DeFi transaction fees.*",
+        "I've updated your automations. Here is the new configuration:\n\n```json\n{\n  \"trigger\": \"Price Drop\",\n  \"asset\": \"ETH\",\n  \"threshold\": \"-5%\",\n  \"action\": \"Buy $100\"\n}\n```\n\nYou'll get a notification when the next one runs.",
       ];
       const randomResponse =
         responses[Math.floor(Math.random() * responses.length)];
@@ -264,8 +367,8 @@ export function ChatContent({ chatId }: ChatContentProps) {
       };
 
       setMessages((prev) => [...prev, aiMessage]);
-      setIsTyping(false);
-    }, 1500);
+      setStreamingAction(null);
+    }, 2800);
   };
 
   const hasMessages = messages.length > 0;
@@ -297,13 +400,17 @@ export function ChatContent({ chatId }: ChatContentProps) {
                 {messages.map((msg) => (
                   <MessageBubble key={msg.id} message={msg} />
                 ))}
-                {isTyping && (
-                  <div className="flex items-center gap-2 animate-pulse max-w-3xl mx-auto pl-4">
-                 <Brain className="size-4 text-primary" />
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60">
-                      Qleva is thinking...
+                {streamingAction && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="flex items-center gap-3 w-full max-w-3xl mx-auto mt-4"
+                  >
+                    <Loader2 className="size-4 animate-spin text-primary" />
+                    <span className="text-xs font-mono tracking-tight text-muted-foreground">
+                      {streamingAction}
                     </span>
-                  </div>
+                  </motion.div>
                 )}
                 <div ref={scrollRef} className="h-4" />
               </div>
@@ -319,7 +426,7 @@ export function ChatContent({ chatId }: ChatContentProps) {
           )}
         >
           <div className="mx-auto w-full max-w-3xl">
-            <Card className="overflow-hidden border border-border/50 backdrop-blur-xl bg-card/60 rounded-2xl shadow-xl">
+            <Card className="overflow-hidden border border-border/50 backdrop-blur-xl bg-card/60 rounded-2xl ">
               <CardContent className="p-0">
                 <div className="flex items-end gap-3 px-3">
                   <Textarea

@@ -1,0 +1,54 @@
+[
+  {
+    "did": "did:privy:cmpa56g0400bs0dl8djjxl599",
+    "createdAt": "Sun May 17 2026 20:02:09 GMT+0100 (West Africa Time)",
+    "email": "vicdevmanx@gmail.com",
+    "walletAddress": "0xBe11dd440bbd3471B741DAb85ba833aD9211fbcD",
+    "oauthProvider": "google",
+    "name": "Vic Devmanx",
+    "username": "vicdevmanx",
+    "avatarUrl": null,
+    "lastLoginAt": "2026-05-17T22:45:25.404Z",
+    "registeredAt": "2026-05-17T22:19:42.357Z",
+    "updatedAt": "2026-05-17T22:45:25.485Z"
+  },
+  {
+    "did": "did:privy:cm234567890abcdef",
+    "createdAt": "2026-05-17T22:34:10.845Z",
+    "email": "alex.rivera@gmail.com",
+    "walletAddress": "0x1234567890abcdef1234567890abcdef12345678",
+    "oauthProvider": "google",
+    "name": "Alex Rivera",
+    "username": "alexrivera",
+    "avatarUrl": "https://lh3.googleusercontent.com/a/ALm5wu3_abc",
+    "lastLoginAt": "2026-05-17T22:34:10.859Z",
+    "registeredAt": "2026-05-17T22:34:11.118Z",
+    "updatedAt": "2026-05-17T22:34:11.118Z"
+  },
+  {
+    "did": "did:privy:cmpad7prb00920cl41lq6oqe0",
+    "createdAt": "Sun May 17 2026 23:47:05 GMT+0100 (West Africa Time)",
+    "email": null,
+    "walletAddress": null,
+    "oauthProvider": "twitter",
+    "name": "Vic Devman",
+    "username": "vicdevman",
+    "avatarUrl": "https://pbs.twimg.com/profile_images/1811050351157493760/yGVmDRdP_normal.jpg",
+    "lastLoginAt": "2026-05-17T22:54:02.415Z",
+    "registeredAt": "2026-05-17T22:47:05.373Z",
+    "updatedAt": "2026-05-17T22:54:02.454Z"
+  },
+  {
+    "did": "did:privy:cmpadixdd00fv0di7841eoz0e",
+    "createdAt": "Sun May 17 2026 23:55:48 GMT+0100 (West Africa Time)",
+    "email": null,
+    "walletAddress": "0x2f003Fd925e305A6f036C1DcCC8463aD10Aa27ad",
+    "oauthProvider": null,
+    "name": "0x2f00...27ad",
+    "username": null,
+    "avatarUrl": null,
+    "lastLoginAt": "2026-05-17T23:34:32.537Z",
+    "registeredAt": "2026-05-17T22:55:48.587Z",
+    "updatedAt": "2026-05-17T23:34:33.072Z"
+  }
+]

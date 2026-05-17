@@ -61,14 +61,14 @@ function NotificationsContent() {
               {unreadCount > 0 ? `${unreadCount} unread notifications` : "All caught up!"}
             </p>
           </div>
-          <Button variant="outline" size="sm" className="gap-2">
+          {/* <Button variant="outline" size="sm" className="gap-2">
             <CheckCheck className="size-3.5" />
             Mark all read
-          </Button>
+          </Button> */}
         </motion.div>
 
         {/* Stats */}
-        <motion.div variants={item} className="grid gap-4 sm:grid-cols-4">
+        <motion.div variants={item} className="grid gap-4 grid-cols-2 sm:grid-cols-4">
           <Card>
             <CardContent className="flex items-center gap-3 ">
               <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10">
@@ -121,7 +121,8 @@ function NotificationsContent() {
 
         {/* Notification List */}
         <motion.div variants={item}>
-          <SectionCard title="All Notifications" delay={0.1}>
+          <div className="flex flex-col gap-4">
+            <h2>Notifications</h2>
             {isLoading ? (
               <div className="space-y-3">
                 {[1, 2, 3, 4, 5].map((i) => (
@@ -137,7 +138,7 @@ function NotificationsContent() {
                       key={notif.id}
                       variants={item}
                       className={cn(
-                        "flex items-start gap-3 rounded-lg border p-3 transition-colors hover:bg-muted/50",
+                        "flex items-start gap-3 rounded-2xl border p-3 transition-colors hover:bg-muted/50",
                         !notif.read && "border-primary/20 bg-primary/5"
                       )}
                     >
@@ -161,7 +162,7 @@ function NotificationsContent() {
                 })}
               </div>
             )}
-          </SectionCard>
+          </div>
         </motion.div>
       </motion.div>
     </AppShell>

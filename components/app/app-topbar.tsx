@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Bell, Wallet, Command, Menu } from "lucide-react";
+import { Search, Bell, Wallet, Command, Menu, User } from "lucide-react";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,17 +14,24 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useUIStore } from "@/stores/ui-store";
-import { useNotifications } from "@/lib/query-hooks";
+import { useNotifications, usePortfolio } from "@/lib/query-hooks";
 import { MobileMenuDrawer } from "./mobile-menu-drawer";
+import { MobileProfileDrawer } from "./mobile-profile-drawer";
+import { usePrivy } from "@privy-io/react-auth";
 import LiquidGlass from "liquid-glass-react";
 
 export function AppTopbar() {
   const { toggleCommandBar, setCommandBarOpen } = useUIStore();
   const { data: notifications } = useNotifications();
+  const { data: portfolio } = usePortfolio();
   const unreadCount = notifications?.filter((n) => !n.read).length ?? 0;
 
   const [menuOpen, setMenuOpen] = React.useState(false);
+  const [profileOpen, setProfileOpen] = React.useState(false);
   const [notificationsOpen, setNotificationsOpen] = React.useState(false);
+
+  const { user } = usePrivy();
+  const avatarUrl = (user?.google as any)?.profilePictureUrl || (user?.twitter as any)?.profilePictureUrl || (user?.github as any)?.profilePictureUrl || "";
 
   const handleKeyDown = React.useCallback(
     (e: KeyboardEvent) => {
@@ -89,6 +96,7 @@ export function AppTopbar() {
   return (
     <>
       <MobileMenuDrawer open={menuOpen} setOpen={setMenuOpen} />
+      <MobileProfileDrawer open={profileOpen} setOpen={setProfileOpen} />
 
       {/* Mobile Floating Header Elements */}
       {/* Left: Mobile Menu Drawer Trigger */}
@@ -104,30 +112,31 @@ export function AppTopbar() {
         </div>
       </div>
 
-      {/* Right: Notifications */}
+      {/* Right: Profile Trigger (replaces Notification button) */}
       <div className="fixed top-4 right-4 z-50 md:hidden">
-        <NotificationsDropdown
-          open={notificationsOpen}
-          setOpen={setNotificationsOpen}
+        <div
+          className="flex items-center justify-center text-foreground cursor-pointer border border-border/50 shadow-[0_20px_50px_rgba(0,0,0,0.3)] backdrop-blur-xl bg-card/60 rounded-3xl p-1.5 relative size-11 overflow-hidden"
+          onClick={() => setProfileOpen(true)}
         >
-          {/* This div acts as the anchor for the dropdown menu */}
-          <div className="flex items-center justify-center text-foreground cursor-pointer border border-border/50 shadow-[0_20px_50px_rgba(0,0,0,0.3)] backdrop-blur-xl bg-card/60 rounded-3xl p-3 relative">
-            <Bell className="size-5" />
-            {unreadCount > 0 && (
-              <motion.span
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                className="absolute -top-1 -right-1 flex size-4 items-center justify-center rounded-full bg-chart-3 text-[10px] font-bold text-destructive-foreground"
-              >
-                {unreadCount}
-              </motion.span>
-            )}
-          </div>
-        </NotificationsDropdown>
+          {avatarUrl ? (
+            <img src={avatarUrl} alt="Avatar" className="size-full object-cover rounded-full" />
+          ) : (
+            <User className="size-5" />
+          )}
+          {unreadCount > 0 && (
+            <motion.span
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              className="absolute top-0.5 right-0.5 flex size-4 items-center justify-center rounded-full bg-chart-3 text-[10px] font-bold text-destructive-foreground z-10"
+            >
+              {unreadCount}
+            </motion.span>
+          )}
+        </div>
       </div>
 
       {/* Desktop Sticky Header */}
-      <header className="hidden sticky top-0 z-30 md:flex h-14 items-center gap-3 border-0 bg-background/80 px-4 backdrop-blur-md">
+      <header className="hidden sticky top-0 z-30 md:flex h-14 items-center gap-3 border-b bg-background/80 px-4 backdrop-blur-md">
         <SidebarTrigger />
 
         {/* Command Bar Trigger */}
@@ -166,8 +175,14 @@ export function AppTopbar() {
         {/* Portfolio Summary Pill */}
         <div className="flex items-center gap-2 rounded-full border bg-muted/50 px-3 py-1.5">
           <Wallet className="size-3.5 text-muted-foreground" />
-          <span className="text-sm font-medium">$3,731.05</span>
-          <span className="text-xs text-green-500">+3.46%</span>
+          <span className="text-sm font-medium">
+            {portfolio ? new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(portfolio.totalValue) : "$0.00"}
+          </span>
+          {portfolio && (
+            <span className={`text-xs ${portfolio.dailyChangePercent >= 0 ? "text-green-500" : "text-red-500"}`}>
+              {portfolio.dailyChangePercent >= 0 ? "+" : ""}{portfolio.dailyChangePercent}%
+            </span>
+          )}
         </div>
       </header>
     </>

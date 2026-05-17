@@ -19,9 +19,6 @@ export default function NotFound() {
         transition={{ duration: 0.5 }}
         className="z-10 flex flex-col items-center text-center px-4"
       >
-        <div className="mb-8 flex size-24 items-center justify-center rounded-3xl bg-primary/10 text-primary shadow-lg ring-1 ring-primary/20 backdrop-blur-xl">
-          <Compass className="size-12" />
-        </div>
         
         <h1 className="font-heading text-7xl md:text-9xl font-bold tracking-tight mb-4 text-transparent bg-clip-text bg-linear-to-b from-foreground to-foreground/50">
           404
@@ -35,8 +32,8 @@ export default function NotFound() {
 
         <Button asChild size="lg" className="rounded-xl font-medium gap-2 h-12 px-6">
           <Link href="/portfolio">
-            <Home className="size-5" />
-            Back to Dashboard
+            {/* <Home className="size-5" /> */}
+            Back to Home
           </Link>
         </Button>
       </motion.div>
