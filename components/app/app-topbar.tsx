@@ -102,7 +102,7 @@ export function AppTopbar() {
       {/* Left: Mobile Menu Drawer Trigger */}
       <div className="fixed top-4 left-4 z-50 md:hidden">
         <div
-          className="flex items-center justify-center text-foreground cursor-pointer border border-border/50 shadow-[0_20px_50px_rgba(0,0,0,0.3)] backdrop-blur-xl bg-card/60 rounded-3xl p-3"
+          className="flex items-center justify-center text-foreground cursor-pointer border border-border backdrop-blur-xl bg-card/60 rounded-3xl p-3"
           onClick={() => setMenuOpen(true)}
         >
           <div className="flex flex-col items-center justify-center gap-[4px] h-5 w-5">
@@ -115,7 +115,7 @@ export function AppTopbar() {
       {/* Right: Profile Trigger (replaces Notification button) */}
       <div className="fixed top-4 right-4 z-50 md:hidden">
         <div
-          className="flex items-center justify-center text-foreground cursor-pointer border border-border/50 shadow-[0_20px_50px_rgba(0,0,0,0.3)] backdrop-blur-xl bg-card/60 rounded-3xl p-1.5 relative size-11 overflow-hidden"
+          className="flex items-center justify-center text-foreground cursor-pointer border border-border backdrop-blur-xl bg-card/60 rounded-3xl p-1.5 relative size-11"
           onClick={() => setProfileOpen(true)}
         >
           {avatarUrl ? (
@@ -127,7 +127,7 @@ export function AppTopbar() {
             <motion.span
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
-              className="absolute top-0.5 right-0.5 flex size-4 items-center justify-center rounded-full bg-chart-3 text-[10px] font-bold text-destructive-foreground z-10"
+              className="absolute -top-1 -right-1 flex size-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-destructive-foreground z-10"
             >
               {unreadCount}
             </motion.span>

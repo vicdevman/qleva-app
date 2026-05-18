@@ -91,8 +91,8 @@ export function MobileProfileDrawer({
 
   return (
     <Drawer open={open} onOpenChange={setOpen}>
-      <DrawerContent className="h-[75vh] outline-0 bg-background/95 backdrop-blur-xl border-t border-border">
-        <DrawerHeader className="pb-2 border-b border-border/50">
+      <DrawerContent className="h-[80vh] outline-0 bg-background/95 backdrop-blur-xl border-t border-border">
+        <DrawerHeader className="pb-3 border-b border-border">
           <div className="flex items-center justify-between px-2 py-1">
             <div className="flex items-center gap-3">
               <img
@@ -104,15 +104,12 @@ export function MobileProfileDrawer({
                 Qleva
               </span>
             </div>
-            <div className="text-xs font-semibold px-2.5 py-1 rounded-full bg-primary/10 text-primary uppercase tracking-wider animate-pulse">
-              Active Session
-            </div>
           </div>
         </DrawerHeader>
 
-        <div className="flex-1 overflow-auto px-6 py-6 space-y-6">
+        <div className="flex-1 overflow-auto px-4 py-6 space-y-6">
           {/* User Profile Card */}
-          <div className="flex items-center gap-4 p-4 rounded-2xl bg-muted/40 border border-border/50 shadow-inner">
+          <div className="flex items-center gap-4 p-4 rounded-2xl border border-border">
             <div className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary overflow-hidden border border-primary/20">
               {avatarUrl ? (
                 <img src={avatarUrl} alt="Avatar" className="size-full object-cover" />
@@ -133,13 +130,13 @@ export function MobileProfileDrawer({
           {/* Wallets & Balances Section */}
           <div className="space-y-3">
             <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider px-1">
-              Connected Wallets
+            Wallets
             </h4>
 
             <div className="space-y-3">
               {/* Connected Wallet */}
               {connectedWallet && (
-                <div className="flex flex-col gap-2 p-4 rounded-xl bg-card border border-border shadow-sm">
+                <div className="flex flex-col gap-2 p-4 rounded-xl bg-card border border-border">
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-semibold text-foreground flex items-center gap-2">
                       <div className="size-2 rounded-full" style={{ backgroundColor: connectedWallet.chainColor }} />
@@ -167,7 +164,7 @@ export function MobileProfileDrawer({
 
               {/* Smart Wallet */}
               {smartWallet && (
-                <div className="flex flex-col gap-2 p-4 rounded-xl bg-card border border-border shadow-sm">
+                <div className="flex flex-col gap-2 p-4 rounded-xl bg-card border border-border">
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-semibold text-foreground flex items-center gap-2">
                       <div className="size-2 rounded-full" style={{ backgroundColor: smartWallet.chainColor }} />
@@ -211,7 +208,7 @@ export function MobileProfileDrawer({
                   <span>Notifications</span>
                 </div>
                 {unreadCount > 0 && (
-                  <span className="flex size-5 items-center justify-center rounded-full bg-chart-3 text-[10px] font-bold text-destructive-foreground">
+                  <span className="flex relative -top-8 -right-6 size-6 items-center justify-center rounded-full bg-primary text-[12px] font-bold text-black">
                     {unreadCount}
                   </span>
                 )}
@@ -254,7 +251,7 @@ export function MobileProfileDrawer({
           {/* Log Out */}
           <DrawerClose asChild>
             <button
-              className="w-full flex items-center justify-center gap-3 rounded-xl p-4 mt-2 text-sm font-semibold text-destructive bg-destructive/5 hover:bg-destructive/10 border border-destructive/10 transition-all active:scale-[0.98] shadow-sm"
+              className="w-full flex items-center justify-center gap-3 rounded-xl p-4 mt-2 text-sm font-semibold text-destructive bg-destructive/5 hover:bg-destructive/10 border border-destructive/10 transition-all active:scale-[0.98]"
               onClick={() => logout()}
             >
               <LogOut className="size-5" /> Log out

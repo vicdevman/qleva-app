@@ -183,7 +183,8 @@ function WalletsContent() {
                       </div>
                       <div>
                         <p className="text-sm font-semibold">{wallet.name}</p>
-                        <p className="text-xs text-muted-foreground">{wallet.address}</p>
+                        <p className="text-xs text-muted-foreground mt-1 truncate md:hidden">{wallet.address.slice(0, 26)}...</p>
+                        <p className="text-xs text-muted-foreground mt-1 truncate hidden md:block">{wallet.address}</p>
                       </div>
                     </div>
                   </div>
@@ -195,13 +196,6 @@ function WalletsContent() {
                         {formatCurrency(wallet.balance)}
                       </p>
                     </div>
-                    {/* <div className="flex items-center gap-1.5">
-                      <span
-                        className="size-2 rounded-full"
-                        style={{ backgroundColor: wallet.chainColor }}
-                      />
-                      <span className="text-xs text-muted-foreground">{wallet.chain}</span>
-                    </div> */}
                   </div>
 
                   <div className="flex gap-2">
@@ -211,13 +205,13 @@ function WalletsContent() {
                           <ArrowDownRight className="size-3.5" />
                           Fund Your Smart Wallet
                         </Button>
-                        <Button variant="secondary" size="lg" className="gap-1.5 p-5">
+                        <Button variant="secondary" size="lg" className="gap-1.5 py-5">
                           <Copy className="size-3.5" />
                         </Button>
                       </>
                     ) : (
                       <>
-                        <Button variant="outline" size="lg" className="flex-1 gap-1.5 py-5">
+                        <Button variant="outline" size="lg" className="flex-1 gap-1.5 p-5">
                           <ArrowUpRight className="size-3.5" />
                           Withdraw
                         </Button>
@@ -235,7 +229,8 @@ function WalletsContent() {
 
         {/* Permissions */}
         <motion.div variants={item}>
-          <SectionCard title="Permissions & Approvals" delay={0.3}>
+          <div className="flex flex-col gap-4">
+            <h2>Permissions & Approvals</h2>
             <div className="space-y-3">
               {[
                 { token: "USDC", spender: "Smart Wallet", amount: "Unlimited", chain: "Base" },
@@ -265,7 +260,7 @@ function WalletsContent() {
                 </div>
               ))}
             </div>
-          </SectionCard>
+          </div>
         </motion.div>
       </motion.div>
     </AppShell>

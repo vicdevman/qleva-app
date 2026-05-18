@@ -102,12 +102,6 @@ export function MobileMenuDrawer({
     <Drawer open={open} onOpenChange={setOpen}>
       <DrawerContent className="h-[85vh] outline-0 bg-background/95 backdrop-blur-xl border-t border-border">
         <DrawerHeader className="pb-2">
-          <div className="flex items-center justify-between mb-4 px-1">
-            <span className="font-heading text-sm font-bold tracking-wider text-muted-foreground uppercase">
-              Navigation Menu
-            </span>
-          </div>
-
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
             <Input
