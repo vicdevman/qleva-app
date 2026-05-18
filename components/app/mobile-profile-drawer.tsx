@@ -27,6 +27,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 
 import { useNotifications } from "@/lib/query-hooks";
+import { Facehash } from "facehash";
 
 export function MobileProfileDrawer({
   open,
@@ -114,7 +115,7 @@ export function MobileProfileDrawer({
               {avatarUrl ? (
                 <img src={avatarUrl} alt="Avatar" className="size-full object-cover" />
               ) : (
-                <User className="size-7" />
+                <Facehash name={displayName} />
               )}
             </div>
             <div className="flex flex-col leading-tight min-w-0">
@@ -208,7 +209,7 @@ export function MobileProfileDrawer({
                   <span>Notifications</span>
                 </div>
                 {unreadCount > 0 && (
-                  <span className="flex relative -top-8 -right-6 size-6 items-center justify-center rounded-full bg-primary text-[12px] font-bold text-black">
+                  <span className="flex relative -top-8 -right-6 w-6 h-6 items-center justify-center rounded-full bg-primary text-[12px] font-bold text-black">
                     {unreadCount}
                   </span>
                 )}

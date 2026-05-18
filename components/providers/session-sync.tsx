@@ -10,6 +10,8 @@ interface UserProfileData {
   createdAt: string;
   email: string | null;
   walletAddress: string | null;
+  smartWalletAddress: string | null;
+  smartWalletType: string | null;
   oauthProvider: string | null;
   name: string | null;
   username: string | null;
@@ -28,6 +30,8 @@ export function extractUserProfile(user: any): Omit<UserProfileData, "lastLoginA
       name: null,
       username: null,
       avatarUrl: null,
+      smartWalletAddress: null,
+      smartWalletType: null,
     };
   }
 
@@ -94,6 +98,8 @@ export function extractUserProfile(user: any): Omit<UserProfileData, "lastLoginA
     createdAt: user.createdAt?.toString() || new Date().toISOString(),
     email: email || (googleAccount?.email || githubAccount?.email || null),
     walletAddress,
+    smartWalletAddress: user.smartWallet?.address || null,
+    smartWalletType: user.smartWallet?.type || null,
     oauthProvider,
     name: displayName,
     username: username || (email ? email.split("@")[0] : null),
@@ -124,7 +130,7 @@ export function SessionSync() {
 
       // 2. Update Frontend Zustand Wallet Store
       if (profile.walletAddress) {
-        syncWallet(profile.walletAddress);
+        syncWallet(profile.walletAddress, profile.smartWalletAddress);
       }
 
       // Avoid double syncing for the exact same session state

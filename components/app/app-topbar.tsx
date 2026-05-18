@@ -19,6 +19,7 @@ import { MobileMenuDrawer } from "./mobile-menu-drawer";
 import { MobileProfileDrawer } from "./mobile-profile-drawer";
 import { usePrivy } from "@privy-io/react-auth";
 import LiquidGlass from "liquid-glass-react";
+import { Facehash } from "facehash";
 
 export function AppTopbar() {
   const { toggleCommandBar, setCommandBarOpen } = useUIStore();
@@ -115,19 +116,19 @@ export function AppTopbar() {
       {/* Right: Profile Trigger (replaces Notification button) */}
       <div className="fixed top-4 right-4 z-50 md:hidden">
         <div
-          className="flex items-center justify-center text-foreground cursor-pointer border border-border backdrop-blur-xl bg-card/60 rounded-3xl p-1.5 relative size-11"
+          className="flex items-center justify-center text-foreground cursor-pointer border border-border backdrop-blur-xl bg-card/60 rounded-3xl relative size-11"
           onClick={() => setProfileOpen(true)}
         >
           {avatarUrl ? (
             <img src={avatarUrl} alt="Avatar" className="size-full object-cover rounded-full" />
           ) : (
-            <User className="size-5" />
+            <Facehash name="hey" intensity3d="none"/>
           )}
           {unreadCount > 0 && (
             <motion.span
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
-              className="absolute -top-1 -right-1 flex size-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-destructive-foreground z-10"
+              className="absolute -top-1 -right-1 flex w-4 h-4 items-center justify-center rounded-full bg-primary text-[10px] text-black font-bold text-destructive-foreground z-10"
             >
               {unreadCount}
             </motion.span>
@@ -159,12 +160,12 @@ export function AppTopbar() {
         {/* Notifications */}
         <NotificationsDropdown>
           <Button variant="ghost" size="icon-sm" className="relative">
-            <Bell className="size-4" />
+            <Bell className="size-4.5" />
             {unreadCount > 0 && (
               <motion.span
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
-                className="absolute -top-0.5 -right-0.5 flex size-4 items-center justify-center rounded-full bg-chart-3 text-[10px] font-bold text-destructive-foreground"
+                className="absolute -top-0.5 -right-0.5 flex size-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-black"
               >
                 {unreadCount}
               </motion.span>

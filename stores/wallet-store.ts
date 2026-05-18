@@ -15,7 +15,7 @@ interface WalletState {
   selectedWalletId: string | null;
   selectWallet: (id: string) => void;
   setWallets: (wallets: WalletInfo[]) => void;
-  syncWallet: (address: string) => void;
+  syncWallet: (address: string, smartAddress?: string | null) => void;
 }
 
 export const useWalletStore = create<WalletState>((set) => ({
@@ -42,26 +42,18 @@ export const useWalletStore = create<WalletState>((set) => ({
   selectedWalletId: "w_002",
   selectWallet: (id) => set({ selectedWalletId: id }),
   setWallets: (wallets) => set({ wallets }),
-  syncWallet: (address) =>
+  syncWallet: (address, smartAddress) =>
     set((state) => {
-      const deriveSmartWallet = (addr: string): string => {
-        if (!addr || !addr.startsWith("0x")) {
-          return "0x3e8C42fb6728001a2B548817a1772fb2a1881a2B";
-        }
-        // Create a realistic smart contract wallet address derived from connected address
-        return `0x8888${addr.slice(6)}`;
-      };
-
       const updatedWallets = state.wallets.map((w) => {
         if (w.type === "connected") {
           return { ...w, address };
         }
         if (w.type === "smart") {
-          return { ...w, address: deriveSmartWallet(address) };
+          const newSmart = smartAddress || (address && address.startsWith("0x") ? `0x8888${address.slice(6)}` : "0x3e8C42fb6728001a2B548817a1772fb2a1881a2B");
+          return { ...w, address: newSmart };
         }
         return w;
       });
-
       return { wallets: updatedWallets };
     }),
 }));

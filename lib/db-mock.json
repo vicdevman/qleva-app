@@ -8,9 +8,11 @@
     "name": "Vic Devmanx",
     "username": "vicdevmanx",
     "avatarUrl": null,
-    "lastLoginAt": "2026-05-18T10:43:41.351Z",
+    "lastLoginAt": "2026-05-18T13:07:19.410Z",
     "registeredAt": "2026-05-17T22:19:42.357Z",
-    "updatedAt": "2026-05-18T10:43:42.050Z"
+    "updatedAt": "2026-05-18T13:07:20.094Z",
+    "smartWalletAddress": "0xf9D650f584F7f2f7EB6d95CA7Ca511A5af58a032",
+    "smartWalletType": null
   },
   {
     "did": "did:privy:cm234567890abcdef",

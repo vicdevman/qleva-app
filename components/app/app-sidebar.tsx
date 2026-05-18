@@ -48,6 +48,7 @@ import {
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 import { Button } from "../ui/button";
+import { Facehash } from "facehash";
 
 const mainNav = [
   { title: "Portfolio", url: "/portfolio", icon: AlignEndHorizontal },
@@ -204,11 +205,11 @@ export function AppSidebar() {
               size="lg"
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
-              <div className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary overflow-hidden">
+              <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary overflow-hidden">
                 {avatarUrl ? (
                   <img src={avatarUrl} alt="Avatar" className="size-full object-cover" />
                 ) : (
-                  <User className="size-6" />
+                   <Facehash name={displayName} />
                 )}
               </div>
               <div className="flex flex-col gap-0.5 leading-none group-data-[collapsible=icon]:hidden">
@@ -231,7 +232,7 @@ export function AppSidebar() {
                   {avatarUrl ? (
                     <img src={avatarUrl} alt="Avatar" className="size-full object-cover" />
                   ) : (
-                    <User className="size-4" />
+                    <Facehash name={displayName} />
                   )}
                 </div>
                 <div className="flex flex-col gap-0.5 leading-none">

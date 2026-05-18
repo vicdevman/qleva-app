@@ -205,7 +205,7 @@ function WalletsContent() {
                           <ArrowDownRight className="size-3.5" />
                           Fund Your Smart Wallet
                         </Button>
-                        <Button variant="secondary" size="lg" className="gap-1.5 py-5">
+                        <Button variant="secondary" size="lg" className="gap-1.5 p-5">
                           <Copy className="size-3.5" />
                         </Button>
                       </>

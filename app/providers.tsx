@@ -2,6 +2,7 @@
 
 import { PrivyProvider } from "@privy-io/react-auth";
 import { ThemeProvider as NextThemesProvider, useTheme } from "next-themes";
+import {SmartWalletsProvider} from '@privy-io/react-auth/smart-wallets';
 import { useEffect, useState } from "react";
 import { SessionSync } from "@/components/providers/session-sync";
 
@@ -28,7 +29,7 @@ function PrivyWrapper({ children }: { children: React.ReactNode }) {
     <PrivyProvider
       appId={process.env.NEXT_PUBLIC_PRIVY_APP_ID!}
       config={{
-        loginMethods: ["email", "google", "twitter", "wallet"],
+        loginMethods: ["email", "google", "wallet"],
         embeddedWallets: {
           ethereum: {
             createOnLogin: "users-without-wallets",
@@ -40,7 +41,7 @@ function PrivyWrapper({ children }: { children: React.ReactNode }) {
         },
       }}
     >
-      {children}
+       <SmartWalletsProvider>{children}</SmartWalletsProvider>
     </PrivyProvider>
   );
 }
