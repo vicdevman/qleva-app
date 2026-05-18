@@ -32,7 +32,47 @@ export function AppTopbar() {
   const [notificationsOpen, setNotificationsOpen] = React.useState(false);
 
   const { user } = usePrivy();
-  const avatarUrl = (user?.google as any)?.profilePictureUrl || (user?.twitter as any)?.profilePictureUrl || (user?.github as any)?.profilePictureUrl || "";
+  const avatarUrl =
+    (user?.google as any)?.profilePictureUrl ||
+    (user?.twitter as any)?.profilePictureUrl ||
+    (user?.github as any)?.profilePictureUrl ||
+    "";
+
+  // Extract name/email from social oauth
+  const googleAccount = user?.google as any;
+  const twitterAccount = user?.twitter as any;
+  const emailAccount = user?.email as any;
+  const githubAccount = user?.github as any;
+
+  // Extract address
+  const activeAddress = user?.wallet?.address || (user as any)?.wallets?.[0]?.address || "";
+  const abbreviatedAddress = activeAddress
+    ? `${activeAddress.slice(0, 6)}...${activeAddress.slice(-4)}`
+    : "No Wallet Linked";
+
+  let displayName = "Qleva User";
+  let displaySub = "";
+
+  if (user) {
+    if (googleAccount?.name) {
+      displayName = googleAccount.name;
+      displaySub =
+        googleAccount.email || emailAccount?.address || abbreviatedAddress;
+    } else if (twitterAccount?.name) {
+      displayName = twitterAccount.name;
+      displaySub = `@${twitterAccount.username}`;
+    } else if (githubAccount?.name) {
+      displayName = githubAccount.name;
+      displaySub =
+        githubAccount.username || emailAccount?.address || abbreviatedAddress;
+    } else if (emailAccount?.address) {
+      displayName = emailAccount.address.split("@")[0];
+      displaySub = emailAccount.address;
+    } else if (activeAddress) {
+      displayName = abbreviatedAddress;
+      displaySub = "Wallet Connected";
+    }
+  }
 
   const handleKeyDown = React.useCallback(
     (e: KeyboardEvent) => {
@@ -120,9 +160,13 @@ export function AppTopbar() {
           onClick={() => setProfileOpen(true)}
         >
           {avatarUrl ? (
-            <img src={avatarUrl} alt="Avatar" className="size-full object-cover rounded-full" />
+            <img
+              src={avatarUrl}
+              alt="Avatar"
+              className="size-full object-cover rounded-full"
+            />
           ) : (
-            <Facehash name="hey" intensity3d="none"/>
+            <Facehash name={displayName} intensity3d="none" enableBlink />
           )}
           {unreadCount > 0 && (
             <motion.span
@@ -177,11 +221,19 @@ export function AppTopbar() {
         <div className="flex items-center gap-2 rounded-full border bg-muted/50 px-3 py-1.5">
           <Wallet className="size-3.5 text-muted-foreground" />
           <span className="text-sm font-medium">
-            {portfolio ? new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(portfolio.totalValue) : "$0.00"}
+            {portfolio
+              ? new Intl.NumberFormat("en-US", {
+                  style: "currency",
+                  currency: "USD",
+                }).format(portfolio.totalValue)
+              : "$0.00"}
           </span>
           {portfolio && (
-            <span className={`text-xs ${portfolio.dailyChangePercent >= 0 ? "text-green-500" : "text-red-500"}`}>
-              {portfolio.dailyChangePercent >= 0 ? "+" : ""}{portfolio.dailyChangePercent}%
+            <span
+              className={`text-xs ${portfolio.dailyChangePercent >= 0 ? "text-green-500" : "text-red-500"}`}
+            >
+              {portfolio.dailyChangePercent >= 0 ? "+" : ""}
+              {portfolio.dailyChangePercent}%
             </span>
           )}
         </div>

@@ -48,7 +48,7 @@ interface ChatMessage {
 
 const suggestionChips = [
   { label: "Buy $100 ETH", icon: <TrendingUp className="size-3" /> },
-  { label: "Bridge to Base", icon: <ArrowRight className="size-3" /> },
+  { label: "Setup DCA", icon: <Zap className="size-3" /> },
   { label: "Setup DCA", icon: <Zap className="size-3" /> },
   { label: "Swap USDC/ETH", icon: <ArrowRightLeft className="size-3" /> },
 ];
@@ -69,7 +69,7 @@ function MessageBubble({ message }: { message: ChatMessage }) {
         <div
           className={cn(
             "flex flex-col gap-2 w-full",
-            isUser ? "items-end text-right" : "items-start text-left",
+            isUser ? "items-end" : "items-start",
           )}
         >
           <div
@@ -207,9 +207,9 @@ function MessageBubble({ message }: { message: ChatMessage }) {
               animate={{ opacity: 1, scale: 1 }}
               className="mt-2 w-full max-w-[calc(100vw-5rem)] sm:max-w-sm"
             >
-              <Card className="overflow-hidden border-primary/20 bg-primary/5 backdrop-blur-md">
+              <Card className="overflow-hidden border-primary/20 bg-card backdrop-blur-md">
                 <CardContent className="">
-                  <div className="flex items-center gap-2 font-semibold text-primary mb-4 text-xs uppercase tracking-tight">
+                  <div className="flex items-center gap-2 font-semibold mb-4 text-xs ">
                     <span>Transaction Preview</span>
                   </div>
                   <div className="space-y-3">
@@ -389,7 +389,7 @@ export function ChatContent({ chatId }: ChatContentProps) {
                   How can I help you?
                 </h1>
                 <p className="text-muted-foreground max-w-md mx-auto text-md">
-                  I'm your decentralized agent. I can help with swaps, bridges,
+                  I'm your decentralized agent. I can help with swaps
                   and complex automations.
                 </p>
               </motion.div>
@@ -426,7 +426,7 @@ export function ChatContent({ chatId }: ChatContentProps) {
           )}
         >
           <div className="mx-auto w-full max-w-3xl">
-            <Card className="overflow-hidden border border-border/50 backdrop-blur-xl bg-card/60 rounded-2xl ">
+            <Card className="overflow-hidden border border-border/50 backdrop-blur-xl bg-card/70 rounded-2xl ">
               <CardContent className="p-0">
                 <div className="flex items-end gap-3 px-3">
                   <Textarea
@@ -470,7 +470,7 @@ export function ChatContent({ chatId }: ChatContentProps) {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
-                className="mt-6 flex flex-wrap justify-center gap-2 max-w-2xl mx-auto"
+                className="mt-4 flex flex-wrap justify-center gap-2 max-w-2xl mx-auto"
               >
                 {suggestionChips.map((chip, i) => (
                   <Button

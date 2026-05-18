@@ -167,7 +167,7 @@ export function AppSidebar() {
             <SidebarGroupLabel>Recent chats</SidebarGroupLabel>
             <Link
               href="/chat"
-              className="flex size-5 items-center justify-center rounded-md hover:bg-muted text-muted-foreground transition-colors"
+              className="flex size-5 items-center justify-center rounded-md hover:bg-primary/50 text-muted-foreground transition-colors"
             >
               <Button size="sm" variant="ghost" className="text-xs">
                 <Plus className="size-3" /> New

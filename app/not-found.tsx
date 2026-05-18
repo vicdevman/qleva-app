@@ -4,6 +4,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { Home, Compass } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Facehash } from "facehash";
 
 export default function NotFound() {
   return (
@@ -19,7 +20,13 @@ export default function NotFound() {
         transition={{ duration: 0.5 }}
         className="z-10 flex flex-col items-center text-center px-4"
       >
-        
+        <Facehash
+          name=")"
+          size={64}
+          colors={["#fdc700", "#fdc700", "#fdc700"]}
+          intensity3d="subtle"
+          enableBlink
+        />
         <h1 className="font-heading text-7xl md:text-9xl font-bold tracking-tight mb-4 text-transparent bg-clip-text bg-linear-to-b from-foreground to-foreground/50">
           404
         </h1>
@@ -27,10 +34,15 @@ export default function NotFound() {
           Page Not Found
         </h2>
         <p className="text-muted-foreground max-w-md mb-8 text-lg">
-          The page you are looking for doesn't exist or has been moved. Let's get you back to your workspace.
+          The page you are looking for doesn't exist or has been moved. Let's
+          get you back to your workspace.
         </p>
 
-        <Button asChild size="lg" className="rounded-xl font-medium gap-2 h-12 px-6">
+        <Button
+          asChild
+          size="lg"
+          className="rounded-xl font-medium gap-2 h-12 px-6"
+        >
           <Link href="/portfolio">
             {/* <Home className="size-5" /> */}
             Back to Home
