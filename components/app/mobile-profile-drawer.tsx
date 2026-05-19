@@ -212,7 +212,7 @@ export function MobileProfileDrawer({
                   <span>Notifications</span>
                 </div>
                 {unreadCount > 0 && (
-                  <span className="flex relative -top-6 -right-4 min-w-6 h-6 items-center justify-center rounded-full bg-primary text-[12px] font-bold text-black">
+                  <span className="flex relative -top-6 -right-2 min-w-6 h-6 items-center justify-center rounded-full bg-primary text-[12px] font-bold text-black">
                     {unreadCount}
                   </span>
                 )}

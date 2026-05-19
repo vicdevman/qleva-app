@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useWalletStore } from "@/stores/wallet-store";
 import { getLivePortfolio } from "@/app/actions/portfolio-orchestrator";
 import { getRecentTransactions } from "@/app/actions/transactions-orchestrator";
+import { usePrivy } from "@privy-io/react-auth";
 import {
   portfolioData,
   automationsData,
@@ -155,22 +156,44 @@ export function usePortfolioHistory() {
 
 // Automations hooks
 export function useAutomations() {
+  const { getAccessToken } = usePrivy();
+
   return useQuery({
     queryKey: ["automations"],
     queryFn: async () => {
-      await delay(500);
-      return automationsData;
+      const token = await getAccessToken();
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+      const res = await fetch(`${baseUrl}/api/automations`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (!res.ok) {
+        throw new Error("Failed to fetch automations");
+      }
+      return res.json();
     },
     staleTime: 30000,
   });
 }
 
 export function useAutomation(id: string) {
+  const { getAccessToken } = usePrivy();
+
   return useQuery({
     queryKey: ["automations", id],
     queryFn: async () => {
-      await delay(300);
-      return automationsData.find((a) => a.id === id) ?? null;
+      const token = await getAccessToken();
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+      const res = await fetch(`${baseUrl}/api/automations/${id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (!res.ok) {
+        throw new Error("Failed to fetch automation");
+      }
+      return res.json();
     },
     enabled: !!id,
   });
@@ -263,12 +286,45 @@ export function useMarketSnapshot() {
 }
 
 // Chat hooks
-export function useChatMessages() {
+export function useChatsList() {
+  const { getAccessToken } = usePrivy();
+
   return useQuery({
-    queryKey: ["chat-messages"],
+    queryKey: ["chats-list"],
     queryFn: async () => {
-      await delay(400);
-      return chatMessagesData;
+      const token = await getAccessToken();
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+      const res = await fetch(`${baseUrl}/api/chats`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (!res.ok) {
+        throw new Error("Failed to fetch chats list");
+      }
+      return res.json() as Promise<{ id: string; title: string; updatedAt: string }[]>;
+    },
+  });
+}
+
+export function useChatMessages(chatId?: string) {
+  const { getAccessToken } = usePrivy();
+
+  return useQuery({
+    queryKey: ["chat-messages", chatId],
+    queryFn: async () => {
+      if (!chatId) return [];
+      const token = await getAccessToken();
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+      const res = await fetch(`${baseUrl}/api/chats/${chatId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (!res.ok) {
+        throw new Error("Failed to fetch chat history");
+      }
+      return res.json();
     },
   });
 }

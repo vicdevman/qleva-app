@@ -83,7 +83,7 @@ function DashboardContent() {
   const { data: activity, isLoading: activityLoading } = useActivity();
 
   const activeAutomations =
-    automations?.filter((a) => a.status === "active").length ?? 0;
+    automations?.filter((a: any) => a.status === "active").length ?? 0;
   const recentActivity = activity?.slice(0, 5) ?? [];
 
   return (
@@ -490,7 +490,7 @@ function DashboardContent() {
                     </div>
                     <p className="mt-1 font-heading text-xl font-semibold">
                       {automations?.reduce(
-                        (sum, a) => sum + a.totalExecutions,
+                        (sum: number, a: any) => sum + a.totalExecutions,
                         0,
                       ) ?? 0}
                     </p>
@@ -512,7 +512,7 @@ function DashboardContent() {
                     <p className="mt-1 font-heading text-xl font-semibold">
                       {formatCompact(
                         automations?.reduce(
-                          (sum, a) => sum + a.totalVolume,
+                          (sum: number, a: any) => sum + a.totalVolume,
                           0,
                         ) ?? 0,
                       )}
@@ -525,7 +525,7 @@ function DashboardContent() {
                     </div>
                     <p className="mt-1 font-heading text-xl font-semibold">
                       {automations
-                        ?.reduce((sum, a) => sum + a.gasUsed, 0)
+                        ?.reduce((sum: number, a: any) => sum + a.gasUsed, 0)
                         .toFixed(4)}{" "}
                       ETH
                     </p>

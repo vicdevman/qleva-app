@@ -2,7 +2,14 @@
 
 const isValidEVMAddress = (address: string) => /^0x[a-fA-F0-9]{40}$/.test(address);
 
+const IS_TEST_MODE = process.env.NEXT_PUBLIC_TEST_MODE === "true";
+
 export async function getZapperTransactions(address: string) {
+  if (IS_TEST_MODE) {
+    console.info(`[ZAPPER TX] Skipping transactions fetch for ${address} because NEXT_PUBLIC_TEST_MODE is enabled.`);
+    return [];
+  }
+
   if (!address || !isValidEVMAddress(address)) {
     console.warn(`[ZAPPER TX] Invalid address provided: "${address}"`);
     return [];

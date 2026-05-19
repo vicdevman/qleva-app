@@ -2,6 +2,9 @@
 
 const isValidEVMAddress = (address: string) => /^0x[a-fA-F0-9]{40}$/.test(address);
 
+const IS_TEST_MODE = process.env.NEXT_PUBLIC_TEST_MODE === "true";
+const DEFAULT_CHAINS = IS_TEST_MODE ? ["sepolia", "base sepolia"] : ["base"]; // "eth"
+
 export interface MoralisTokenBalance {
   token_address: string;
   name: string;
@@ -35,7 +38,7 @@ export interface MoralisNetWorthResponse {
 
 export async function getWalletNetWorth(
   address: string,
-  chains: string[] = ["base"] // "eth", 
+  chains: string[] = DEFAULT_CHAINS
 ): Promise<MoralisNetWorthResponse | null> {
   if (!address || !isValidEVMAddress(address)) {
     console.warn(`Moralis: Skipping invalid address: ${address}`);

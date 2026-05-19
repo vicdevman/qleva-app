@@ -27,19 +27,19 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "Qleva | Conversational Crypto Automation",
+    default: "Qleva | Automate crypto actions using plain English",
     template: "%s | Qleva"
   },
   description: "Qleva is a conversational crypto automation platform that lets you execute, manage, and automate onchain actions on Base, Ethereum, and beyond using simple natural language.",
   keywords: ["crypto automation", "AI web3 agent", "conversational defi", "onchain automation", "Qleva smart wallet", "Base network", "Ethereum automations", "DeFi DCA"],
-  authors: [{ name: "Qleva Team" }],
-  creator: "Qleva",
-  metadataBase: new URL("https://qleva.app"),
+  authors: [{ name: "Victor Adeiza (vicdevman)" }],
+  creator: "vicdevman",
+  metadataBase: new URL("https://qleva.cloud"),
   openGraph: {
     type: "website",
     locale: "en_US",
-    url: "https://qleva.app",
-    title: "Qleva | Conversational Crypto Automation",
+    url: "https://qleva.cloud",
+    title: "Qleva | Automate crypto actions using plain English",
     description: "Execute, manage, and automate onchain actions using simple natural language. The premier AI companion for web3.",
     siteName: "Qleva",
     images: [
@@ -53,9 +53,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Qleva | Conversational Crypto Automation",
+    title: "Qleva | Automate crypto actions using plain English",
     description: "Execute and automate onchain actions using natural language on Base & Ethereum.",
-    creator: "@qleva_app",
+    creator: "@vicdevman",
     images: ["/og-image.png"]
   },
   robots: {

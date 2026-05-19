@@ -27,9 +27,15 @@ export async function getRecentTransactions(
   console.info(`[TRANSACTIONS ORCHESTRATOR] Fetching transactions for ${address} using ${provider.toUpperCase()} provider.`);
   const unifiedTx: UnifiedTransaction[] = [];
 
+  const IS_TEST_MODE = process.env.NEXT_PUBLIC_TEST_MODE === "true";
+
   if (provider === "moralis") {
-    // Moralis uses: eth, polygon, base, etc.
-    const rawTxs = await getMoralisTransactions(address, chain.toLowerCase());
+    // Moralis uses: eth, base, base sepolia, sepolia, etc.
+    const queryChain = IS_TEST_MODE
+      ? (chain.toLowerCase() === "base" ? "base sepolia" : "sepolia")
+      : chain.toLowerCase();
+
+    const rawTxs = await getMoralisTransactions(address, queryChain);
     
     rawTxs.forEach((tx: any) => {
       // Very basic mapping from Moralis History schema
@@ -47,7 +53,7 @@ export async function getRecentTransactions(
         date: tx.block_timestamp,
         type,
         status: "success", // Moralis history usually only returns mined txs
-        chain,
+        chain: IS_TEST_MODE ? (chain.toLowerCase() === "base" ? "Base (Sepolia)" : "Ethereum (Sepolia)") : chain,
         assetSymbol: tx.erc20_transfers?.[0]?.token_symbol || "Native",
         amount: tx.erc20_transfers?.[0]?.value_formatted || "0",
         toAddress: tx.to_address,
@@ -57,7 +63,10 @@ export async function getRecentTransactions(
 
   } else if (provider === "alchemy") {
     // Alchemy uses: eth-mainnet, base-mainnet, etc.
-    const network = chain === "base" ? "base-mainnet" : "eth-mainnet";
+    const network = IS_TEST_MODE
+      ? (chain.toLowerCase() === "base" ? "base-sepolia" : "eth-sepolia")
+      : (chain.toLowerCase() === "base" ? "base-mainnet" : "eth-mainnet");
+
     const rawTxs = await getAlchemyTransactions(address, network);
 
     rawTxs.forEach((tx: any) => {
@@ -68,7 +77,7 @@ export async function getRecentTransactions(
         date: tx.metadata?.blockTimestamp || new Date().toISOString(),
         type: tx.to === address ? "receive" : "send",
         status: "success",
-        chain,
+        chain: IS_TEST_MODE ? (chain.toLowerCase() === "base" ? "Base (Sepolia)" : "Ethereum (Sepolia)") : chain,
         assetSymbol: tx.asset,
         amount: tx.value?.toString() || "0",
         toAddress: tx.to,
@@ -76,7 +85,7 @@ export async function getRecentTransactions(
       });
     });
 
-  } else if (provider === "zapper") {
+  } else if (provider === "zapper" && !IS_TEST_MODE) {
     const rawTxs = await getZapperTransactions(address);
 
     rawTxs.forEach((tx: any) => {
@@ -99,8 +108,8 @@ export async function getRecentTransactions(
       });
     });
   } else {
-    // Zapper or unsupported fallback
-    console.warn(`Transactions provider '${provider}' currently falls back to empty.`);
+    // Zapper in test mode or unsupported fallback
+    console.warn(`Transactions provider '${provider}' skipped or unsupported in this mode.`);
   }
 
   // Sort newest first

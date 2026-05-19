@@ -10,6 +10,7 @@ import {
   Link2,
   Unlink,
   Copy,
+  Check,
   ExternalLink,
   ChevronRight,
   Zap,
@@ -26,6 +27,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useWalletStore } from "@/stores/wallet-store";
 import { usePortfolio } from "@/lib/query-hooks";
+import { useUIStore } from "@/stores/ui-store";
 import { cn } from "@/lib/utils";
 
 function formatCurrency(value: number) {
@@ -134,8 +136,18 @@ function WalletRelationshipVisualizer() {
 function WalletsContent() {
   const { wallets, selectedWalletId, selectWallet } = useWalletStore();
   const { data: portfolio, isLoading: portfolioLoading } = usePortfolio();
+  const { setFundDialogOpen, setWithdrawDialogOpen } = useUIStore();
   const [isArchitectureExpanded, setIsArchitectureExpanded] =
     React.useState(false);
+  const [copiedId, setCopiedId] = React.useState<string | null>(null);
+
+  const handleCopy = (address: string, id: string) => {
+    navigator.clipboard.writeText(address);
+    setCopiedId(id);
+    setTimeout(() => {
+      setCopiedId(null);
+    }, 2000);
+  };
 
   const smartWallet = wallets.find((w) => w.type === "smart");
   const hasSmartWallet = !!smartWallet?.address;
@@ -270,16 +282,24 @@ function WalletsContent() {
                   <div className="flex gap-2">
                     {wallet.type === "connected" ? (
                       <>
-                        <Button size="lg" className="flex-1 gap-1.5 py-5">
+                        <Button size="lg" className="flex-1 gap-1.5 py-5" onClick={() => setFundDialogOpen(true)}>
                           <ArrowDownRight className="size-3.5" />
                           Fund Your Smart Wallet
                         </Button>
                         <Button
                           variant="secondary"
                           size="lg"
-                          className="gap-1.5 p-5"
+                          className="gap-1.5 p-5 animate-transition"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCopy(wallet.address, wallet.id);
+                          }}
                         >
-                          <Copy className="size-3.5" />
+                          {copiedId === wallet.id ? (
+                            <Check className="size-3.5 text-green-500" />
+                          ) : (
+                            <Copy className="size-3.5" />
+                          )}
                         </Button>
                       </>
                     ) : (
@@ -288,6 +308,7 @@ function WalletsContent() {
                           variant="outline"
                           size="lg"
                           className="flex-1 gap-1.5 p-5"
+                          onClick={() => setWithdrawDialogOpen(true)}
                         >
                           <ArrowUpRight className="size-3.5" />
                           Withdraw

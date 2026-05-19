@@ -39,6 +39,7 @@ import {
 import { usePortfolio, useActivity } from "@/lib/query-hooks";
 import { cn } from "@/lib/utils";
 import { useWalletStore } from "@/stores/wallet-store";
+import { useUIStore } from "@/stores/ui-store";
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("en-US", {
@@ -101,6 +102,7 @@ function PortfolioContent() {
   const { data: activity, isLoading: activityLoading } = useActivity();
   const [chartFilter, setChartFilter] = React.useState("30D");
   const { wallets } = useWalletStore();
+  const { setFundDialogOpen } = useUIStore();
   const smartWallet = wallets.find((w) => w.type === "smart");
   const hasSmartWallet = !!smartWallet?.address;
 
@@ -130,7 +132,7 @@ function PortfolioContent() {
               <Download className="size-3.5" />
               Export
             </Button>
-            <Button size="sm" className="gap-2">
+            <Button size="sm" className="gap-2" onClick={() => setFundDialogOpen(true)}>
               <ArrowRightLeft className="size-3.5" />
               Fund Wallet
             </Button>
@@ -349,6 +351,16 @@ function PortfolioContent() {
                       <Skeleton key={i} className="h-12 w-full" />
                     ))}
                   </div>
+                ) : !portfolio?.topAssets || portfolio.topAssets.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-12 text-center rounded-xl border border-dashed border-muted-foreground/30 bg-muted/10 px-4">
+                    <div className="flex size-12 items-center justify-center rounded-full bg-primary/10 mb-4">
+                      <Wallet className="size-6 text-primary" />
+                    </div>
+                    <h3 className="font-heading text-base font-semibold">No assets found</h3>
+                    <p className="text-xs text-muted-foreground max-w-xs mt-1">
+                      No active balances were detected on this address. You can top up your balance using the fund options above.
+                    </p>
+                  </div>
                 ) : (
                   <div className="space-y-4">
                     {/* Desktop View */}
@@ -518,6 +530,16 @@ function PortfolioContent() {
                     {[1, 2, 3, 4].map((i) => (
                       <Skeleton key={i} className="h-14 w-full" />
                     ))}
+                  </div>
+                ) : !activity || activity.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-12 text-center rounded-xl border border-dashed border-muted-foreground/30 bg-muted/10 px-4">
+                    <div className="flex size-12 items-center justify-center rounded-full bg-primary/10 mb-4">
+                      <ArrowRightLeft className="size-6 text-primary" />
+                    </div>
+                    <h3 className="font-heading text-base font-semibold">No transactions found</h3>
+                    <p className="text-xs text-muted-foreground max-w-xs mt-1">
+                      No onchain transaction history was detected for this address.
+                    </p>
                   </div>
                 ) : (
                   <div className="space-y-2">

@@ -57,10 +57,17 @@ const ZAPPER_QUERY = `
 
 const isValidEVMAddress = (address: string) => /^0x[a-fA-F0-9]{40}$/.test(address);
 
+const IS_TEST_MODE = process.env.NEXT_PUBLIC_TEST_MODE === "true";
+
 export async function getZapperPortfolio(
   address: string,
   chainIds: number[] = [8453] // Default to Base and this is Ethereum [, 1]
 ): Promise<ZapperResponse | null> {
+  if (IS_TEST_MODE) {
+    console.info(`[ZAPPER] Skipping portfolio fetch for ${address} because NEXT_PUBLIC_TEST_MODE is enabled.`);
+    return null;
+  }
+
   if (!address || !isValidEVMAddress(address)) {
     console.warn(`Zapper: Skipping invalid address: ${address}`);
     return null;

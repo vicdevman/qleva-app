@@ -96,7 +96,13 @@ export async function getLivePortfolio(
 
     const totalValue = parseFloat(data.total_networth_usd);
     const chainDistribution = data.chains.map((c) => {
-      const chainName = c.chain.toLowerCase() === "eth" ? "Ethereum" : c.chain.charAt(0).toUpperCase() + c.chain.slice(1);
+      let chainName = c.chain;
+      if (c.chain.toLowerCase() === "eth") chainName = "Ethereum";
+      else if (c.chain.toLowerCase() === "sepolia") chainName = "Ethereum (Sepolia)";
+      else if (c.chain.toLowerCase() === "base") chainName = "Base";
+      else if (c.chain.toLowerCase() === "base sepolia") chainName = "Base (Sepolia)";
+      else chainName = c.chain.charAt(0).toUpperCase() + c.chain.slice(1);
+
       const value = parseFloat(c.networth_usd);
       return {
         chain: chainName,

@@ -5,6 +5,8 @@ interface UIState {
   notificationsOpen: boolean;
   profileMenuOpen: boolean;
   sidebarCollapsed: boolean;
+  fundDialogOpen: boolean;
+  withdrawDialogOpen: boolean;
   toggleCommandBar: () => void;
   setCommandBarOpen: (open: boolean) => void;
   toggleNotifications: () => void;
@@ -13,6 +15,8 @@ interface UIState {
   setProfileMenuOpen: (open: boolean) => void;
   toggleSidebar: () => void;
   setSidebarCollapsed: (collapsed: boolean) => void;
+  setFundDialogOpen: (open: boolean) => void;
+  setWithdrawDialogOpen: (open: boolean) => void;
 }
 
 export const useUIStore = create<UIState>((set) => ({
@@ -20,6 +24,8 @@ export const useUIStore = create<UIState>((set) => ({
   notificationsOpen: false,
   profileMenuOpen: false,
   sidebarCollapsed: false,
+  fundDialogOpen: false,
+  withdrawDialogOpen: false,
   toggleCommandBar: () => set((s) => ({ commandBarOpen: !s.commandBarOpen })),
   setCommandBarOpen: (open) => set({ commandBarOpen: open }),
   toggleNotifications: () => set((s) => ({ notificationsOpen: !s.notificationsOpen })),
@@ -28,4 +34,6 @@ export const useUIStore = create<UIState>((set) => ({
   setProfileMenuOpen: (open) => set({ profileMenuOpen: open }),
   toggleSidebar: () => set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),
   setSidebarCollapsed: (collapsed) => set({ sidebarCollapsed: collapsed }),
+  setFundDialogOpen: (open) => set({ fundDialogOpen: open }),
+  setWithdrawDialogOpen: (open) => set({ withdrawDialogOpen: open }),
 }));

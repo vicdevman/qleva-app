@@ -19,7 +19,12 @@ export interface AlchemyTokenPrice {
   timestamp: string;
 }
 
-const ALCHEMY_NETWORKS: Record<string, string> = {
+const IS_TEST_MODE = process.env.NEXT_PUBLIC_TEST_MODE === "true";
+
+const ALCHEMY_NETWORKS: Record<string, string> = IS_TEST_MODE ? {
+  "Ethereum": "eth-sepolia",
+  "Base": "base-sepolia",
+} : {
   "Ethereum": "eth-mainnet",
   "Polygon": "polygon-mainnet",
   "Base": "base-mainnet",

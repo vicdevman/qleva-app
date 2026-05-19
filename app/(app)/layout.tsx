@@ -3,6 +3,7 @@
 import { Providers } from "@/lib/providers";
 import { AppShell } from "@/components/app/app-shell";
 import { CommandBar } from "@/components/app/command-bar";
+import { FundWithdrawDialogs } from "@/components/app/fund-withdraw-dialog";
 import { usePrivy } from "@privy-io/react-auth";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -62,6 +63,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <AuthGuard>
           {children}
         <CommandBar />
+        <FundWithdrawDialogs />
       </AuthGuard>
     </Providers>
   );

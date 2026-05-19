@@ -49,6 +49,7 @@ import { cn } from "@/lib/utils";
 import Image from "next/image";
 import { Button } from "../ui/button";
 import { Facehash } from "facehash";
+import { useChatsList } from "@/lib/query-hooks";
 
 const mainNav = [
   { title: "Portfolio", url: "/portfolio", icon: AlignEndHorizontal },
@@ -102,11 +103,7 @@ export function AppSidebar() {
     }
   }
 
-  // Dummy chat data for the new Chats section
-  const [chats, setChats] = React.useState([
-    { id: "1", title: "Wallet setup assistant" },
-    { id: "2", title: "DeFi yield analysis" },
-  ]);
+  const { data: chats = [], isLoading } = useChatsList();
 
   return (
     <Sidebar
@@ -114,7 +111,7 @@ export function AppSidebar() {
       variant="floating"
       className="border-sidebar-border/50 hidden md:flex"
     >
-      <SidebarHeader className="flex-row items-start gap-3 px-3 py-4">
+      <SidebarHeader className="flex-row items-center gap-3 px-3 py-4">
         <Image
           src="/qleva-brand/new-logo-primary.png"
           alt="logo"
@@ -123,7 +120,7 @@ export function AppSidebar() {
           className="w-6"
         />
         <div className="flex flex-col group-data-[collapsible=icon]:hidden">
-          <span className="font-heading text-lg font-semibold tracking-tight">
+          <span className="font-heading text-xl font-semibold tracking-tight">
             Qleva
           </span>
         </div>
@@ -176,23 +173,33 @@ export function AppSidebar() {
           </div>
           <SidebarGroupContent>
             <SidebarMenu className="flex gap-1 mt-2">
-              {chats.map((chat) => {
-                const url = `/chat/${chat.id}`;
-                const isActive = pathname === url;
-                return (
-                  <SidebarMenuItem key={chat.id}>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={isActive}
-                      tooltip={chat.title}
-                    >
-                      <Link href={url}>
-                        <span className="">{chat.title}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
+              {chats.length > 0 ? (
+                chats.map((chat) => {
+                  const url = `/chat/${chat.id}`;
+                  const isActive = pathname === url;
+                  return (
+                    <SidebarMenuItem key={chat.id}>
+                      <SidebarMenuButton
+                        asChild
+                        isActive={isActive}
+                        tooltip={chat.title}
+                      >
+                        <Link href={url}>
+                          <span className="truncate">{chat.title}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  );
+                })
+              ) : isLoading ? (
+                <div className="px-3 py-2 text-xs text-muted-foreground/40 italic group-data-[collapsible=icon]:hidden">
+                  Loading chats...
+                </div>
+              ) : (
+                <div className="px-3 py-2 text-xs text-muted-foreground/50 italic group-data-[collapsible=icon]:hidden">
+                  No active chats
+                </div>
+              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

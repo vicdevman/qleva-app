@@ -28,6 +28,8 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { useChatMessages, useSendMessage } from "@/lib/query-hooks";
+import { useQueryClient } from "@tanstack/react-query";
+import { usePrivy } from "@privy-io/react-auth";
 import { cn } from "@/lib/utils";
 
 interface ChatMessage {
@@ -291,7 +293,9 @@ interface ChatContentProps {
 
 export function ChatContent({ chatId }: ChatContentProps) {
   const router = useRouter();
-  const { data: dummyMessages } = useChatMessages();
+  const queryClient = useQueryClient();
+  const { getAccessToken } = usePrivy();
+  const { data: dummyMessages } = useChatMessages(chatId);
   const [messages, setMessages] = React.useState<ChatMessage[]>([]);
   const [input, setInput] = React.useState("");
   const [streamingAction, setStreamingAction] = React.useState<string | null>(null);
@@ -319,16 +323,6 @@ export function ChatContent({ chatId }: ChatContentProps) {
   ) => {
     if (!text.trim() && !img) return;
 
-    if (!chatId) {
-      // Logic for new chat - in a real app, you would hit your API to create the chat
-      // with the first message and return the ID, then redirect.
-      const newChatId = Date.now().toString();
-      // clear input so when they navigate back it's empty
-      setInput("");
-      router.push(`/chat/${newChatId}`);
-      return;
-    }
-
     const userMessage: ChatMessage = {
       id: Date.now().toString(),
       role: "user",
@@ -340,35 +334,77 @@ export function ChatContent({ chatId }: ChatContentProps) {
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
     setAttachedImage(null);
-    setStreamingAction("Analyzing request intent...");
+    setStreamingAction("Qleva is formulating execution script...");
 
-    setTimeout(() => {
-      setStreamingAction("Checking on-chain liquidity pools...");
-    }, 800);
+    try {
+      const token = await getAccessToken();
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
-    setTimeout(() => {
-      setStreamingAction("Simulating optimal transaction route...");
-    }, 1600);
+      if (!chatId) {
+        // Start a brand new chat session
+        const response = await fetch(`${baseUrl}/api/chats`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ message: text }),
+        });
 
-    setTimeout(() => {
-      const responses = [
-        "### Transaction Plan Ready\n\nI've analyzed your request and found the optimal execution route on **Base**.\n\n- **Route**: `USDC` → `WETH`\n- **Estimated Gas**: `$0.45`\n- **Slippage Tolerance**: `0.5%`\n\nWould you like me to proceed with the execution?",
-        "### Portfolio Overview\n\nHere is the detailed breakdown of your portfolio across chains:\n\n| Chain | Balance | Allocation |\n|-------|---------|------------|\n| **Base** | $2,100.50 | 56.3% |\n| **Ethereum** | $1,200.25 | 32.2% |\n| **Arbitrum** | $430.30 | 11.5% |\n\n> *Tip: Consider bridging some of your Ethereum assets to Base to take advantage of lower DeFi transaction fees.*",
-        "I've updated your automations. Here is the new configuration:\n\n```json\n{\n  \"trigger\": \"Price Drop\",\n  \"asset\": \"ETH\",\n  \"threshold\": \"-5%\",\n  \"action\": \"Buy $100\"\n}\n```\n\nYou'll get a notification when the next one runs.",
-      ];
-      const randomResponse =
-        responses[Math.floor(Math.random() * responses.length)];
+        if (!response.ok) {
+          throw new Error("Failed to start chat session");
+        }
 
-      const aiMessage: ChatMessage = {
-        id: (Date.now() + 1).toString(),
+        const data = await response.json();
+        const returnedChatId = data.chatId;
+        const returnedMessages = data.messages;
+
+        setStreamingAction(null);
+        
+        // Cache the returned database messages and route to the new ID!
+        queryClient.setQueryData(["chat-messages", returnedChatId], returnedMessages);
+        
+        // Set local state to show response instantly before transition
+        setMessages(returnedMessages);
+        
+        router.push(`/chat/${returnedChatId}`);
+      } else {
+        // Post message to existing chat session
+        const response = await fetch(`${baseUrl}/api/chats/${chatId}/messages`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ message: text }),
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to send message");
+        }
+
+        const aiMessage = await response.json();
+        
+        setStreamingAction(null);
+        setMessages((prev) => {
+          const finalMessages = [...prev, aiMessage];
+          // Update Query cache for this chat session
+          queryClient.setQueryData(["chat-messages", chatId], finalMessages);
+          return finalMessages;
+        });
+      }
+    } catch (error) {
+      console.error("[ChatContent] API execution error:", error);
+      setStreamingAction(null);
+      
+      const errorMessage: ChatMessage = {
+        id: `err_${Date.now()}`,
         role: "assistant",
-        content: randomResponse,
+        content: "⚠️ **System Communication Issue**\n\nI was unable to establish a secure link with the decentralized execution node. Please make sure the service is online and try again.",
         timestamp: new Date().toISOString(),
       };
-
-      setMessages((prev) => [...prev, aiMessage]);
-      setStreamingAction(null);
-    }, 2800);
+      setMessages((prev) => [...prev, errorMessage]);
+    }
   };
 
   const hasMessages = messages.length > 0;

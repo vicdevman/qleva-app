@@ -249,11 +249,11 @@ function AutomationCard({ automation }: { automation: any }) {
 function AutomationsContent() {
   const { data: automations, isLoading } = useAutomations();
   const activeCount =
-    automations?.filter((a) => a.status === "active").length ?? 0;
+    automations?.filter((a: any) => a.status === "active").length ?? 0;
   const totalExecutions =
-    automations?.reduce((sum, a) => sum + a.totalExecutions, 0) ?? 0;
+    automations?.reduce((sum: number, a: any) => sum + a.totalExecutions, 0) ?? 0;
   const totalVolume =
-    automations?.reduce((sum, a) => sum + a.totalVolume, 0) ?? 0;
+    automations?.reduce((sum: number, a: any) => sum + a.totalVolume, 0) ?? 0;
 
   return (
     <AppShell>

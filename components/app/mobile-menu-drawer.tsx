@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { usePrivy } from "@privy-io/react-auth";
+import { useChatsList } from "@/lib/query-hooks";
 import {
   Drawer,
   DrawerClose,
@@ -92,11 +93,7 @@ export function MobileMenuDrawer({
     }
   }
 
-  // Dummy chat data matching the sidebar
-  const [chats] = React.useState([
-    { id: "1", title: "Wallet setup assistant" },
-    { id: "2", title: "DeFi yield analysis" },
-  ]);
+  const { data: chats = [], isLoading } = useChatsList();
 
   return (
     <Drawer open={open} onOpenChange={setOpen}>
@@ -145,25 +142,35 @@ export function MobileMenuDrawer({
               Recent Chats
             </h4>
             <div className="space-y-2">
-              {chats.map((chat) => {
-                const url = `/chat/${chat.id}`;
-                const isActive = pathname === url;
-                return (
-                  <DrawerClose asChild key={chat.id}>
-                    <Link
-                      href={url}
-                      className={`flex items-center gap-4 rounded-xl px-4 py-3.5 text-sm font-medium transition-all active:scale-[0.98] ${
-                        isActive
-                          ? "bg-primary text-primary-foreground border border-primary/20 shadow-md"
-                          : "bg-muted/30 text-muted-foreground hover:bg-muted hover:text-foreground border border-border"
-                      }`}
-                    >
-                      <span className="truncate">{chat.title}</span>
-                      {isActive && <div className="ml-auto size-2 rounded-full bg-primary-foreground animate-pulse" />}
-                    </Link>
-                  </DrawerClose>
-                );
-              })}
+              {chats.length > 0 ? (
+                chats.map((chat) => {
+                  const url = `/chat/${chat.id}`;
+                  const isActive = pathname === url;
+                  return (
+                    <DrawerClose asChild key={chat.id}>
+                      <Link
+                        href={url}
+                        className={`flex items-center gap-4 rounded-xl px-4 py-3.5 text-sm font-medium transition-all active:scale-[0.98] ${
+                          isActive
+                            ? "bg-primary text-primary-foreground border border-primary/20 shadow-md"
+                            : "bg-muted/30 text-muted-foreground hover:bg-muted hover:text-foreground border border-border"
+                        }`}
+                      >
+                        <span className="truncate">{chat.title}</span>
+                        {isActive && <div className="ml-auto size-2 rounded-full bg-primary-foreground animate-pulse" />}
+                      </Link>
+                    </DrawerClose>
+                  );
+                })
+              ) : isLoading ? (
+                <div className="px-3 py-4 text-center rounded-xl bg-muted/10 border border-border/50 text-xs text-muted-foreground/40 italic">
+                  Loading chats...
+                </div>
+              ) : (
+                <div className="px-3 py-4 text-center rounded-xl bg-muted/10 border border-border/50 text-xs text-muted-foreground/60 italic">
+                  No active chats yet. Start a new session above!
+                </div>
+              )}
             </div>
           </div>
 
