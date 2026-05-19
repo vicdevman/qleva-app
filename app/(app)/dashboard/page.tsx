@@ -15,19 +15,35 @@ import {
   Fuel,
   Repeat,
   ExternalLink,
+  AlertTriangle,
 } from "lucide-react";
 import { AppShell } from "@/components/app/app-shell";
 import { SectionCard } from "@/components/shared/section-card";
 import { MiniChart, AllocationBar } from "@/components/shared/mini-chart";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { usePortfolio, useAutomations, useAiSuggestions, useMarketSnapshot, useActivity } from "@/lib/query-hooks";
+import {
+  usePortfolio,
+  useAutomations,
+  useAiSuggestions,
+  useMarketSnapshot,
+  useActivity,
+} from "@/lib/query-hooks";
 import { cn } from "@/lib/utils";
 
 function formatCurrency(value: number) {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(value);
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+  }).format(value);
 }
 
 function formatCompact(value: number) {
@@ -51,17 +67,23 @@ const container = {
 
 const item = {
   hidden: { opacity: 0, y: 12 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: "easeOut" as const } },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.35, ease: "easeOut" as const },
+  },
 };
 
 function DashboardContent() {
   const { data: portfolio, isLoading: portfolioLoading } = usePortfolio();
   const { data: automations, isLoading: automationsLoading } = useAutomations();
-  const { data: suggestions, isLoading: suggestionsLoading } = useAiSuggestions();
+  const { data: suggestions, isLoading: suggestionsLoading } =
+    useAiSuggestions();
   const { data: market, isLoading: marketLoading } = useMarketSnapshot();
   const { data: activity, isLoading: activityLoading } = useActivity();
 
-  const activeAutomations = automations?.filter((a) => a.status === "active").length ?? 0;
+  const activeAutomations =
+    automations?.filter((a) => a.status === "active").length ?? 0;
   const recentActivity = activity?.slice(0, 5) ?? [];
 
   return (
@@ -74,14 +96,19 @@ function DashboardContent() {
       >
         {/* Page Header */}
         <motion.div variants={item} className="flex flex-col gap-1">
-          <h1 className="font-heading text-2xl font-semibold tracking-tight">Dashboard</h1>
+          <h1 className="font-heading text-2xl font-semibold tracking-tight">
+            Dashboard
+          </h1>
           <p className="text-sm text-muted-foreground">
             Your financial overview and automation status
           </p>
         </motion.div>
 
         {/* Balance Cards Row */}
-        <motion.div variants={item} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <motion.div
+          variants={item}
+          className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
+        >
           {/* Total Portfolio */}
           <Card className="relative overflow-hidden border-primary/20 bg-linear-to-br from-primary/5 to-transparent">
             <CardContent className="">
@@ -92,15 +119,23 @@ function DashboardContent() {
               {portfolioLoading ? (
                 <Skeleton className="mt-2 h-8 w-32" />
               ) : (
-                <p className="mt-1 font-heading text-2xl font-semibold">
-                  {formatCurrency(portfolio?.totalValue ?? 0)}
-                </p>
+                <div className="flex items-center gap-2 mt-1">
+                  <p className="font-heading text-2xl font-semibold">
+                    {formatCurrency(portfolio?.totalValue ?? 0)}
+                  </p>
+                  {portfolio?.error && (
+                    <span title="Failed to fetch live balance. Showing estimated offline data.">
+                      <AlertTriangle className="size-4 text-yellow-500" />
+                    </span>
+                  )}
+                </div>
               )}
               {portfolio && (
                 <div className="mt-1 flex items-center gap-1">
                   <TrendingUp className="size-3 text-green-500" />
                   <span className="text-xs font-medium text-green-500">
-                    +{formatCurrency(portfolio.dailyChange)} ({portfolio.dailyChangePercent}%)
+                    +{formatCurrency(portfolio.dailyChange)} (
+                    {portfolio.dailyChangePercent}%)
                   </span>
                   <span className="text-xs text-muted-foreground">today</span>
                 </div>
@@ -118,9 +153,16 @@ function DashboardContent() {
               {portfolioLoading ? (
                 <Skeleton className="mt-2 h-8 w-28" />
               ) : (
-                <p className="mt-1 font-heading text-2xl font-semibold">
-                  {formatCurrency(1280.30)}
-                </p>
+                <div className="flex items-center gap-2 mt-1">
+                  <p className="font-heading text-2xl font-semibold">
+                    {formatCurrency(portfolio?.smartWalletValue ?? 1280.30)}
+                  </p>
+                  {portfolio?.error && (
+                    <span title="Failed to fetch live balance. Showing estimated offline data.">
+                      <AlertTriangle className="size-4 text-yellow-500" />
+                    </span>
+                  )}
+                </div>
               )}
               <p className="mt-1 text-xs text-muted-foreground">Base Network</p>
             </CardContent>
@@ -136,11 +178,20 @@ function DashboardContent() {
               {portfolioLoading ? (
                 <Skeleton className="mt-2 h-8 w-28" />
               ) : (
-                <p className="mt-1 font-heading text-2xl font-semibold">
-                  {formatCurrency(2450.75)}
-                </p>
+                <div className="flex items-center gap-2 mt-1">
+                  <p className="font-heading text-2xl font-semibold">
+                    {formatCurrency(portfolio?.connectedWalletValue ?? 2450.75)}
+                  </p>
+                  {portfolio?.error && (
+                    <span title="Failed to fetch live balance. Showing estimated offline data.">
+                      <AlertTriangle className="size-4 text-yellow-500" />
+                    </span>
+                  )}
+                </div>
               )}
-              <p className="mt-1 text-xs text-muted-foreground">MetaMask · Ethereum</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                MetaMask · Ethereum
+              </p>
             </CardContent>
           </Card>
 
@@ -154,7 +205,9 @@ function DashboardContent() {
               {automationsLoading ? (
                 <Skeleton className="mt-2 h-8 w-16" />
               ) : (
-                <p className="mt-1 font-heading text-2xl font-semibold">{activeAutomations}</p>
+                <p className="mt-1 font-heading text-2xl font-semibold">
+                  {activeAutomations}
+                </p>
               )}
               <p className="mt-1 text-xs text-muted-foreground">
                 {automations?.length ?? 0} total configured
@@ -202,15 +255,20 @@ function DashboardContent() {
               ) : (
                 <div className="space-y-4">
                   <AllocationBar
-                    segments={portfolio?.chainDistribution.map((c) => ({
-                      label: c.chain,
-                      percent: c.percent,
-                      color: c.color,
-                    })) ?? []}
+                    segments={
+                      portfolio?.chainDistribution.map((c) => ({
+                        label: c.chain,
+                        percent: c.percent,
+                        color: c.color,
+                      })) ?? []
+                    }
                   />
                   <div className="space-y-2">
                     {portfolio?.chainDistribution.map((chain) => (
-                      <div key={chain.chain} className="flex items-center justify-between">
+                      <div
+                        key={chain.chain}
+                        className="flex items-center justify-between"
+                      >
                         <div className="flex items-center gap-2">
                           <span
                             className="size-2.5 rounded-full"
@@ -218,7 +276,9 @@ function DashboardContent() {
                           />
                           <span className="text-sm">{chain.chain}</span>
                         </div>
-                        <span className="text-sm font-medium">{formatCompact(chain.value)}</span>
+                        <span className="text-sm font-medium">
+                          {formatCompact(chain.value)}
+                        </span>
                       </div>
                     ))}
                   </div>
@@ -243,13 +303,21 @@ function DashboardContent() {
                 <div className="space-y-3">
                   {portfolio?.topAssets.map((asset) => (
                     <div key={asset.symbol} className="flex items-center gap-3">
-                      <div className="flex size-9 items-center justify-center rounded-lg bg-muted text-lg">
-                        {asset.icon}
+                      <div className="flex size-9 items-center justify-center rounded-lg bg-muted overflow-hidden text-lg">
+                        {asset.icon.startsWith("http") ? (
+                          <img src={asset.icon} alt={asset.symbol} className="size-full object-cover" />
+                        ) : (
+                          asset.icon
+                        )}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium">{asset.symbol}</span>
-                          <span className="text-sm font-medium">{formatCurrency(asset.value)}</span>
+                          <span className="text-sm font-medium">
+                            {asset.symbol}
+                          </span>
+                          <span className="text-sm font-medium">
+                            {formatCurrency(asset.value)}
+                          </span>
                         </div>
                         <div className="flex items-center justify-between">
                           <span className="text-xs text-muted-foreground">
@@ -258,7 +326,9 @@ function DashboardContent() {
                           <span
                             className={cn(
                               "text-xs",
-                              asset.change24h >= 0 ? "text-green-500" : "text-red-500"
+                              asset.change24h >= 0
+                                ? "text-green-500"
+                                : "text-red-500",
                             )}
                           >
                             {asset.change24h >= 0 ? "+" : ""}
@@ -295,8 +365,8 @@ function DashboardContent() {
                           act.status === "completed"
                             ? "bg-green-500/10 text-green-500"
                             : act.status === "failed"
-                            ? "bg-red-500/10 text-red-500"
-                            : "bg-yellow-500/10 text-yellow-500"
+                              ? "bg-red-500/10 text-red-500"
+                              : "bg-yellow-500/10 text-yellow-500",
                         )}
                       >
                         {act.status === "completed" ? (
@@ -308,10 +378,16 @@ function DashboardContent() {
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="truncate text-sm font-medium">{act.title}</p>
-                        <p className="text-xs text-muted-foreground">{timeAgo(act.timestamp)}</p>
+                        <p className="truncate text-sm font-medium">
+                          {act.title}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {timeAgo(act.timestamp)}
+                        </p>
                       </div>
-                      <span className="shrink-0 text-xs font-medium">{act.amount}</span>
+                      <span className="shrink-0 text-xs font-medium">
+                        {act.amount}
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -371,14 +447,19 @@ function DashboardContent() {
               ) : (
                 <div className="grid grid-cols-3 gap-3">
                   {market?.map((m) => (
-                    <div key={m.symbol} className="rounded-lg border bg-muted/30 p-3 text-center">
+                    <div
+                      key={m.symbol}
+                      className="rounded-lg border bg-muted/30 p-3 text-center"
+                    >
                       <div className="text-2xl">{m.icon}</div>
                       <p className="mt-1 text-sm font-medium">{m.symbol}</p>
-                      <p className="text-sm font-semibold">{formatCurrency(m.price)}</p>
+                      <p className="text-sm font-semibold">
+                        {formatCurrency(m.price)}
+                      </p>
                       <p
                         className={cn(
                           "text-xs",
-                          m.change24h >= 0 ? "text-green-500" : "text-red-500"
+                          m.change24h >= 0 ? "text-green-500" : "text-red-500",
                         )}
                       >
                         {m.change24h >= 0 ? "+" : ""}
@@ -408,7 +489,10 @@ function DashboardContent() {
                       <span className="text-xs">Total Executions</span>
                     </div>
                     <p className="mt-1 font-heading text-xl font-semibold">
-                      {automations?.reduce((sum, a) => sum + a.totalExecutions, 0) ?? 0}
+                      {automations?.reduce(
+                        (sum, a) => sum + a.totalExecutions,
+                        0,
+                      ) ?? 0}
                     </p>
                   </div>
                   <div className="rounded-lg border bg-muted/30 p-3">
@@ -416,7 +500,9 @@ function DashboardContent() {
                       <TrendingUp className="size-3" />
                       <span className="text-xs">Success Rate</span>
                     </div>
-                    <p className="mt-1 font-heading text-xl font-semibold">94%</p>
+                    <p className="mt-1 font-heading text-xl font-semibold">
+                      94%
+                    </p>
                   </div>
                   <div className="rounded-lg border bg-muted/30 p-3">
                     <div className="flex items-center gap-1.5 text-muted-foreground">
@@ -424,7 +510,12 @@ function DashboardContent() {
                       <span className="text-xs">Total Volume</span>
                     </div>
                     <p className="mt-1 font-heading text-xl font-semibold">
-                      {formatCompact(automations?.reduce((sum, a) => sum + a.totalVolume, 0) ?? 0)}
+                      {formatCompact(
+                        automations?.reduce(
+                          (sum, a) => sum + a.totalVolume,
+                          0,
+                        ) ?? 0,
+                      )}
                     </p>
                   </div>
                   <div className="rounded-lg border bg-muted/30 p-3">
@@ -433,7 +524,10 @@ function DashboardContent() {
                       <span className="text-xs">Gas Used</span>
                     </div>
                     <p className="mt-1 font-heading text-xl font-semibold">
-                      {automations?.reduce((sum, a) => sum + a.gasUsed, 0).toFixed(4)} ETH
+                      {automations
+                        ?.reduce((sum, a) => sum + a.gasUsed, 0)
+                        .toFixed(4)}{" "}
+                      ETH
                     </p>
                   </div>
                 </div>

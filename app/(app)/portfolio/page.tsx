@@ -13,6 +13,7 @@ import {
   ExternalLink,
   AlignEndHorizontal,
   ArrowUp,
+  AlertTriangle,
 } from "lucide-react";
 import { AppShell } from "@/components/app/app-shell";
 import { SectionCard } from "@/components/shared/section-card";
@@ -37,6 +38,7 @@ import {
 } from "@/components/ui/chart";
 import { usePortfolio, useActivity } from "@/lib/query-hooks";
 import { cn } from "@/lib/utils";
+import { useWalletStore } from "@/stores/wallet-store";
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("en-US", {
@@ -98,6 +100,9 @@ function PortfolioContent() {
   const { data: portfolio, isLoading } = usePortfolio();
   const { data: activity, isLoading: activityLoading } = useActivity();
   const [chartFilter, setChartFilter] = React.useState("30D");
+  const { wallets } = useWalletStore();
+  const smartWallet = wallets.find((w) => w.type === "smart");
+  const hasSmartWallet = !!smartWallet?.address;
 
   return (
     <AppShell>
@@ -133,17 +138,24 @@ function PortfolioContent() {
         </motion.div>
 
         {/* Summary Cards */}
-        <motion.div variants={item} className="grid gap-4 sm:grid-cols-3">
+        <motion.div variants={item} className={cn("grid gap-4", hasSmartWallet ? "sm:grid-cols-3" : "sm:grid-cols-2")}>
           <Card className="bg-linear-to-br from-primary/5 to-transparent">
             <CardContent className="flex flex-col gap-2">
               <p className="text-xs text-muted-foreground">Total Value</p>
               {isLoading ? (
                 <Skeleton className="mt-1 h-8 w-32" />
               ) : (
-                <span className="flex gap-4">
-                  <p className="font-heading text-3xl font-semibold">
-                    {formatCurrency(portfolio?.totalValue ?? 0)}
-                  </p>
+                <span className="flex gap-4 items-center">
+                  <div className="flex items-center gap-2">
+                    <p className="font-heading text-3xl font-semibold">
+                      {formatCurrency(portfolio?.totalValue ?? 0)}
+                    </p>
+                    {portfolio?.error && (
+                      <span title="Failed to fetch live balance. Showing estimated offline data.">
+                        <AlertTriangle className="size-5 text-yellow-500" />
+                      </span>
+                    )}
+                  </div>
                   {portfolio && (
                     <div className="mt-1 flex items-center gap-1">
                       <ArrowUp className="size-3 text-green-500" />
@@ -156,20 +168,44 @@ function PortfolioContent() {
               )}
             </CardContent>
           </Card>
-          <Card>
-            <CardContent className="flex flex-col gap-2">
-              <p className="text-xs text-muted-foreground">Smart Wallet</p>
-              <p className="mt-1 font-heading text-3xl font-semibold">
-                {formatCurrency(1280.3)}
-              </p>
-            </CardContent>
-          </Card>
+          {hasSmartWallet && (
+            <Card>
+              <CardContent className="flex flex-col gap-2">
+                <p className="text-xs text-muted-foreground">Smart Wallet</p>
+                {isLoading ? (
+                  <Skeleton className="mt-1 h-8 w-28" />
+                ) : (
+                  <div className="flex items-center gap-2 mt-1">
+                    <p className="font-heading text-3xl font-semibold">
+                      {formatCurrency(portfolio?.smartWalletValue ?? 1280.3)}
+                    </p>
+                    {portfolio?.error && (
+                      <span title="Failed to fetch live balance.">
+                        <AlertTriangle className="size-5 text-yellow-500" />
+                      </span>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
           <Card>
             <CardContent className="flex flex-col gap-1">
               <p className="text-xs text-muted-foreground">Connected Wallet</p>
-              <p className="mt-1 font-heading text-3xl font-semibold">
-                {formatCurrency(2450.75)}
-              </p>
+              {isLoading ? (
+                <Skeleton className="mt-1 h-8 w-28" />
+              ) : (
+                <div className="flex items-center gap-2 mt-1">
+                  <p className="font-heading text-3xl font-semibold">
+                    {formatCurrency(portfolio?.connectedWalletValue ?? 2450.75)}
+                  </p>
+                  {portfolio?.error && (
+                    <span title="Failed to fetch live balance.">
+                      <AlertTriangle className="size-5 text-yellow-500" />
+                    </span>
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
         </motion.div>
@@ -324,7 +360,7 @@ function PortfolioContent() {
                             <th className="pb-2 font-medium">Balance</th>
                             <th className="pb-2 font-medium">Value</th>
                             <th className="pb-2 font-medium">Allocation</th>
-                            <th className="pb-2 font-medium">24h</th>
+                            {/* <th className="pb-2 font-medium">24h</th> */}
                           </tr>
                         </thead>
                         <tbody>
@@ -337,8 +373,12 @@ function PortfolioContent() {
                             >
                               <td className="py-3">
                                 <div className="flex items-center gap-3">
-                                  <div className="flex size-8 items-center justify-center rounded-lg bg-muted text-base">
-                                    {asset.icon}
+                                  <div className="flex size-8 items-center justify-center rounded-lg bg-muted overflow-hidden text-base">
+                                    {asset.icon.startsWith("http") ? (
+                                      <img src={asset.icon} alt={asset.symbol} className="size-full object-cover" />
+                                    ) : (
+                                      asset.icon
+                                    )}
                                   </div>
                                   <div>
                                     <p className="text-sm font-medium">
@@ -373,7 +413,7 @@ function PortfolioContent() {
                                   </span>
                                 </div>
                               </td>
-                              <td className="py-3">
+                              {/* <td className="py-3">
                                 <span
                                   className={cn(
                                     "text-xs font-medium",
@@ -385,7 +425,7 @@ function PortfolioContent() {
                                   {asset.change24h >= 0 ? "+" : ""}
                                   {asset.change24h}%
                                 </span>
-                              </td>
+                              </td> */}
                             </motion.tr>
                           ))}
                         </tbody>
@@ -403,8 +443,12 @@ function PortfolioContent() {
                         >
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
-                              <div className="flex size-10 items-center justify-center rounded-lg bg-muted text-xl">
-                                {asset.icon}
+                              <div className="flex size-10 items-center justify-center rounded-lg bg-muted overflow-hidden text-xl">
+                                {asset.icon.startsWith("http") ? (
+                                  <img src={asset.icon} alt={asset.symbol} className="size-full object-cover" />
+                                ) : (
+                                  asset.icon
+                                )}
                               </div>
                               <div>
                                 <p className="text-sm font-semibold">

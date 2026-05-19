@@ -228,14 +228,14 @@ export function AppTopbar() {
                 }).format(portfolio.totalValue)
               : "$0.00"}
           </span>
-          {portfolio && (
+          {/* {portfolio && (
             <span
               className={`text-xs ${portfolio.dailyChangePercent >= 0 ? "text-green-500" : "text-red-500"}`}
             >
               {portfolio.dailyChangePercent >= 0 ? "+" : ""}
               {portfolio.dailyChangePercent}%
             </span>
-          )}
+          )} */}
         </div>
       </header>
     </>

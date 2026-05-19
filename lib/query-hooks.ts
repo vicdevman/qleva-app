@@ -2,6 +2,8 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useWalletStore } from "@/stores/wallet-store";
+import { getLivePortfolio } from "@/app/actions/portfolio-orchestrator";
+import { getRecentTransactions } from "@/app/actions/transactions-orchestrator";
 import {
   portfolioData,
   automationsData,
@@ -17,62 +19,126 @@ import {
 // Simulated API delay
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-// Portfolio hooks
+// ==========================================
+// PORTFOLIO PROVIDER CONFIGURATION
+// Switch this to "alchemy", "moralis", or "zapper" to change your data source globally!
+// ==========================================
+const ACTIVE_PROVIDER = process.env.NEXT_PUBLIC_ACTIVE_PROVIDER || "zapper";
+
+// Note on `staleTime: 5 * 60 * 1000`: 
+// This does NOT mean it fetches automatically in the background every 5 minutes. 
+// It means if you click a page or interact after 5 minutes, it will fetch fresh data. 
+// If you leave the page open for an hour and don't interact, 0 credits are used!
 export function usePortfolio() {
   const { wallets } = useWalletStore();
   const connectedWallet = wallets.find((w) => w.type === "connected");
   const smartWallet = wallets.find((w) => w.type === "smart");
 
   return useQuery({
-    queryKey: ["portfolio", connectedWallet?.address, smartWallet?.address, connectedWallet?.balance, smartWallet?.balance],
+    queryKey: [
+      "portfolio",
+      connectedWallet?.address,
+      smartWallet?.address,
+      connectedWallet?.balance,
+      smartWallet?.balance,
+    ],
     queryFn: async () => {
-      await delay(600);
+      const smartAddress = smartWallet?.address;
+      const connectedAddress = connectedWallet?.address;
 
-      // Compute dynamic portfolio total based on connected + smart wallet balances
-      const totalValue = (connectedWallet?.balance ?? 2450.75) + (smartWallet?.balance ?? 1280.30);
+      const [smartData, connectedData] = await Promise.all([
+        smartAddress ? getLivePortfolio(smartAddress, ACTIVE_PROVIDER as any) : Promise.resolve(null),
+        connectedAddress ? getLivePortfolio(connectedAddress, ACTIVE_PROVIDER as any) : Promise.resolve(null),
+      ]);
+
+      const smartError = smartData?.error ?? true;
+      const connectedError = connectedData?.error ?? true;
+      const error = (smartAddress && smartError) || (connectedAddress && connectedError);
+
+      const smartValue = smartData && !smartError ? smartData.totalValue : (smartWallet?.balance ?? 1280.30);
+      const connectedValue = connectedData && !connectedError ? connectedData.totalValue : (connectedWallet?.balance ?? 2450.75);
       
-      const chainDistribution = [
-        { 
-          chain: "Base", 
-          value: smartWallet?.balance ?? 1280.30, 
-          percent: totalValue > 0 ? Number(((smartWallet?.balance ?? 1280.30) / totalValue * 100).toFixed(1)) : 0, 
-          color: "#0052FF" 
-        },
-        { 
-          chain: "Ethereum", 
-          value: connectedWallet?.balance ?? 2450.75, 
-          percent: totalValue > 0 ? Number(((connectedWallet?.balance ?? 2450.75) / totalValue * 100).toFixed(1)) : 0, 
-          color: "#627EEA" 
-        },
-      ];
+      const totalValue = smartValue + connectedValue;
+
+      // Merge chain distribution
+      const chainMap = new Map<string, number>();
+      if (!smartError || !connectedError) {
+        [smartData, connectedData].forEach(data => {
+          if (data && !data.error) {
+            data.chainDistribution.forEach(c => {
+              chainMap.set(c.chain, (chainMap.get(c.chain) || 0) + c.value);
+            });
+          }
+        });
+      } else {
+        chainMap.set("Base", smartValue);
+        chainMap.set("Ethereum", connectedValue);
+      }
+
+      const chainDistribution = Array.from(chainMap.entries()).map(([chain, value]) => ({
+        chain,
+        value,
+        percent: totalValue > 0 ? Number(((value / totalValue) * 100).toFixed(1)) : 0,
+        color: chain === "Ethereum" ? "#627EEA" : chain === "Base" ? "#0052FF" : "#8884d8",
+      })).sort((a, b) => b.value - a.value);
+
+      // Merge top assets
+      const assetMap = new Map<string, any>();
+      if (!smartError || !connectedError) {
+        [smartData, connectedData].forEach(data => {
+          if (data && !data.error && data.topAssets) {
+            data.topAssets.forEach(asset => {
+              const key = `${asset.symbol}-${asset.name}`;
+              if (assetMap.has(key)) {
+                const existing = assetMap.get(key);
+                existing.value += asset.value;
+                existing.balance += asset.balance;
+                existing.allocation = totalValue > 0 ? Number(((existing.value / totalValue) * 100).toFixed(1)) : 0;
+              } else {
+                assetMap.set(key, { ...asset });
+              }
+            });
+          }
+        });
+      }
+      
+      let topAssets = Array.from(assetMap.values()).sort((a, b) => b.value - a.value);
+
+      if (topAssets.length === 0) {
+        topAssets = [
+          {
+            symbol: "ETH",
+            name: "Ethereum",
+            balance: Number((connectedValue / 2600).toFixed(3)),
+            value: connectedValue,
+            allocation: totalValue > 0 ? Number(((connectedValue / totalValue) * 100).toFixed(1)) : 0,
+            change24h: 2.4,
+            icon: "⟠",
+          },
+          {
+            symbol: "USDC",
+            name: "USD Coin",
+            balance: smartValue,
+            value: smartValue,
+            allocation: totalValue > 0 ? Number(((smartValue / totalValue) * 100).toFixed(1)) : 0,
+            change24h: 0.0,
+            icon: "$",
+          },
+        ];
+      }
 
       return {
         ...portfolioData,
+        error,
         totalValue,
+        smartWalletValue: smartValue,
+        connectedWalletValue: connectedValue,
         chainDistribution,
-        topAssets: [
-          { 
-            symbol: "ETH", 
-            name: "Ethereum", 
-            balance: Number(((connectedWallet?.balance ?? 2450.75) / 2600).toFixed(3)), 
-            value: connectedWallet?.balance ?? 2450.75, 
-            allocation: totalValue > 0 ? Number(((connectedWallet?.balance ?? 2450.75) / totalValue * 100).toFixed(1)) : 0, 
-            change24h: 2.4, 
-            icon: "⟠" 
-          },
-          { 
-            symbol: "USDC", 
-            name: "USD Coin", 
-            balance: smartWallet?.balance ?? 1280.30, 
-            value: smartWallet?.balance ?? 1280.30, 
-            allocation: totalValue > 0 ? Number(((smartWallet?.balance ?? 1280.30) / totalValue * 100).toFixed(1)) : 0, 
-            change24h: 0.0, 
-            icon: "$" 
-          },
-        ],
+        topAssets,
       };
     },
-    staleTime: 30000,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: false,
   });
 }
 
@@ -112,39 +178,37 @@ export function useAutomation(id: string) {
 
 // Activity hooks
 export function useActivity() {
-  const { wallets } = useWalletStore();
-  const connectedWallet = wallets.find((w) => w.type === "connected");
-  const smartWallet = wallets.find((w) => w.type === "smart");
-
+  const { wallets, selectedWalletId } = useWalletStore();
+  
   return useQuery({
-    queryKey: ["activity", connectedWallet?.address, smartWallet?.address],
+    queryKey: ["activity", selectedWalletId],
     queryFn: async () => {
-      await delay(450);
+      // Find the currently selected wallet's address, default to connected wallet
+      const activeWallet = wallets.find(w => w.id === selectedWalletId) || wallets.find(w => w.type === "connected");
+      const address = activeWallet?.address;
 
-      const connAbbr = connectedWallet?.address 
-        ? `${connectedWallet.address.slice(0, 6)}...${connectedWallet.address.slice(-4)}` 
-        : "Connected Wallet";
-      const smartAbbr = smartWallet?.address 
-        ? `${smartWallet.address.slice(0, 6)}...${smartWallet.address.slice(-4)}` 
-        : "Smart Wallet";
+      if (!address) return [];
 
-      return activityData.map((act) => {
-        if (act.id === "act_006") {
-          return {
-            ...act,
-            description: `Funded Qleva Smart Wallet (${smartAbbr}) from connected wallet (${connAbbr})`,
-          };
-        }
-        if (act.id === "act_004") {
-          return {
-            ...act,
-            description: `Approved USDC spending for Qleva Smart Wallet (${smartAbbr})`,
-          };
-        }
-        return act;
-      });
+      // Use the actual Recent Transactions Orchestrator
+      const txs = await getRecentTransactions(address, ACTIVE_PROVIDER as any);
+
+      // Map UnifiedTransaction back to the UI's activity shape
+      return txs.map(tx => ({
+        id: tx.id,
+        title: tx.type === "receive" ? "Received Tokens" : tx.type === "send" ? "Sent Tokens" : "Contract Interaction",
+        description: `${tx.fromAddress?.slice(0,6)}...${tx.fromAddress?.slice(-4)} -> ${tx.toAddress?.slice(0,6)}...${tx.toAddress?.slice(-4)}`,
+        amount: `${tx.type === "send" ? "-" : "+"}${tx.amount} ${tx.assetSymbol}`,
+        status: tx.status === "success" ? "completed" : tx.status,
+        date: new Date(tx.date).toLocaleDateString(),
+        timestamp: tx.date,
+        type: tx.type === "swap" ? "swap" : tx.type === "contract_execution" ? "contract" : "transfer",
+        chain: tx.chain.toUpperCase(),
+        txHash: tx.hash,
+        gasUsed: 0.0001,
+      }));
     },
-    staleTime: 15000,
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 }
 
@@ -212,7 +276,13 @@ export function useChatMessages() {
 export function useSendMessage() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ content, role = "user" }: { content: string; role?: "user" | "assistant" }) => {
+    mutationFn: async ({
+      content,
+      role = "user",
+    }: {
+      content: string;
+      role?: "user" | "assistant";
+    }) => {
       await delay(800);
       return {
         id: Math.random().toString(36).substring(7),

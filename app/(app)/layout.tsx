@@ -1,6 +1,7 @@
 "use client";
 
 import { Providers } from "@/lib/providers";
+import { AppShell } from "@/components/app/app-shell";
 import { CommandBar } from "@/components/app/command-bar";
 import { usePrivy } from "@privy-io/react-auth";
 import { useRouter } from "next/navigation";
@@ -23,7 +24,7 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
 
-    const random_ = Math.floor(Math.random() * 5)
+    const random_ = Math.floor(Math.random() * 3)
 
     changeName(names[random_]);
   }, []);
@@ -59,7 +60,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <Providers>
       <AuthGuard>
-        {children}
+          {children}
         <CommandBar />
       </AuthGuard>
     </Providers>

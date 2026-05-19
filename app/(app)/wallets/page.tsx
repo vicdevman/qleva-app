@@ -25,10 +25,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useWalletStore } from "@/stores/wallet-store";
+import { usePortfolio } from "@/lib/query-hooks";
 import { cn } from "@/lib/utils";
 
 function formatCurrency(value: number) {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(value);
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+  }).format(value);
 }
 
 const container = {
@@ -38,10 +42,15 @@ const container = {
 
 const item = {
   hidden: { opacity: 0, y: 12 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: "easeOut" as const } },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.35, ease: "easeOut" as const },
+  },
 };
 
 function WalletRelationshipVisualizer() {
+  const { data: portfolio } = usePortfolio();
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
@@ -56,11 +65,15 @@ function WalletRelationshipVisualizer() {
         </div>
         <div>
           <p className="text-sm font-medium">Personal Wallet</p>
-          <p className="text-xs text-muted-foreground">MetaMask · 0x7a2B...4f9E</p>
+          <p className="text-xs text-muted-foreground">
+            MetaMask · 0x7a2B...4f9E
+          </p>
         </div>
         <div className="ml-4 text-right">
-          <p className="text-sm font-semibold">{formatCurrency(2450.75)}</p>
-          <p className="text-[10px] text-muted-foreground">Funding & Withdrawals</p>
+          <p className="text-sm font-semibold">{formatCurrency(portfolio?.connectedWalletValue ?? 2450.75)}</p>
+          <p className="text-[10px] text-muted-foreground">
+            Funding & Withdrawals
+          </p>
         </div>
       </div>
 
@@ -81,11 +94,15 @@ function WalletRelationshipVisualizer() {
         </div>
         <div>
           <p className="text-sm font-medium">Smart Wallet</p>
-          <p className="text-xs text-muted-foreground">Smart Contract · 0x3e8C...1a2B</p>
+          <p className="text-xs text-muted-foreground">
+            Smart Contract · 0x3e8C...1a2B
+          </p>
         </div>
         <div className="ml-4 text-right">
-          <p className="text-sm font-semibold">{formatCurrency(1280.30)}</p>
-          <p className="text-[10px] text-muted-foreground">Automation Execution</p>
+          <p className="text-sm font-semibold">{formatCurrency(portfolio?.smartWalletValue ?? 0)}</p>
+          <p className="text-[10px] text-muted-foreground">
+            Automation Execution
+          </p>
         </div>
       </div>
 
@@ -94,7 +111,9 @@ function WalletRelationshipVisualizer() {
         <div className="h-6 w-px bg-border" />
         <div className="flex items-center gap-1 rounded-full border bg-background px-2 py-0.5">
           <Zap className="size-3 text-primary" />
-          <span className="text-[10px] text-muted-foreground">Automated Actions</span>
+          <span className="text-[10px] text-muted-foreground">
+            Automated Actions
+          </span>
         </div>
         <div className="h-6 w-px bg-border" />
       </div>
@@ -114,15 +133,31 @@ function WalletRelationshipVisualizer() {
 
 function WalletsContent() {
   const { wallets, selectedWalletId, selectWallet } = useWalletStore();
-  const [isArchitectureExpanded, setIsArchitectureExpanded] = React.useState(false);
+  const { data: portfolio, isLoading: portfolioLoading } = usePortfolio();
+  const [isArchitectureExpanded, setIsArchitectureExpanded] =
+    React.useState(false);
+
+  const smartWallet = wallets.find((w) => w.type === "smart");
+  const hasSmartWallet = !!smartWallet?.address;
+  const displayWallets = wallets.filter(w => w.type === "connected" || w.address !== "");
 
   return (
     <AppShell>
-      <motion.div variants={container} initial="hidden" animate="show" className="space-y-6">
+      <motion.div
+        variants={container}
+        initial="hidden"
+        animate="show"
+        className="space-y-6"
+      >
         {/* Header */}
-        <motion.div variants={item} className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <motion.div
+          variants={item}
+          className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
+        >
           <div>
-            <h1 className="font-heading text-2xl font-semibold tracking-tight">Wallets</h1>
+            <h1 className="font-heading text-2xl font-semibold tracking-tight">
+              Wallets
+            </h1>
             <p className="text-sm text-muted-foreground">
               Manage wallet relationships and funding flows
             </p>
@@ -130,45 +165,64 @@ function WalletsContent() {
         </motion.div>
 
         {/* Wallet Relationship Visualizer */}
-        <motion.div variants={item}>
-          <Card className="overflow-hidden border border-border/50 bg-card/50">
-            <div 
-              className="flex items-center justify-between px-4 cursor-pointer"
-              onClick={() => setIsArchitectureExpanded(!isArchitectureExpanded)}
-            >
-              <div>
-                <h3 className="font-heading text-lg font-semibold tracking-tight">Wallet Architecture ?</h3>
-                <p className="text-sm text-muted-foreground">How your wallets work together</p>
-              </div>
-              <Button variant="ghost" size="icon" className="shrink-0" onClick={(e) => { e.stopPropagation(); setIsArchitectureExpanded(!isArchitectureExpanded); }}>
-                {isArchitectureExpanded ? <ChevronUp className="size-5" /> : <ChevronDown className="size-5" />}
-              </Button>
-            </div>
-            <AnimatePresence initial={false}>
-              {isArchitectureExpanded && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: "auto", opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.3, ease: "easeInOut" }}
+        {hasSmartWallet && (
+          <motion.div variants={item}>
+            <Card className="overflow-hidden border border-border/50 bg-card/50">
+              <div
+                className="flex items-center justify-between px-4 cursor-pointer"
+                onClick={() => setIsArchitectureExpanded(!isArchitectureExpanded)}
+              >
+                <div>
+                  <h3 className="font-heading text-lg font-semibold tracking-tight">
+                    Wallet Architecture ?
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    How your wallets work together
+                  </p>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="shrink-0"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsArchitectureExpanded(!isArchitectureExpanded);
+                  }}
                 >
-                  <div className="p-4">
-                    <WalletRelationshipVisualizer />
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </Card>
-        </motion.div>
+                  {isArchitectureExpanded ? (
+                    <ChevronUp className="size-5" />
+                  ) : (
+                    <ChevronDown className="size-5" />
+                  )}
+                </Button>
+              </div>
+              <AnimatePresence initial={false}>
+                {isArchitectureExpanded && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.3, ease: "easeInOut" }}
+                  >
+                    <div className="p-4">
+                      <WalletRelationshipVisualizer />
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </Card>
+          </motion.div>
+        )}
 
         {/* Wallet Cards */}
-        <div className="grid gap-4 md:grid-cols-2">
-          {wallets.map((wallet, i) => (
+        <div className={cn("grid gap-4", displayWallets.length > 1 ? "md:grid-cols-2" : "md:grid-cols-1")}>
+          {displayWallets.map((wallet, i) => (
             <motion.div key={wallet.id} variants={item} custom={i}>
               <Card
                 className={cn(
                   "cursor-pointer transition-all hover:shadow-md",
-                  selectedWalletId === wallet.id && "border-primary ring-1 ring-primary/20"
+                  selectedWalletId === wallet.id &&
+                    "border-primary ring-1 ring-primary/20",
                 )}
                 onClick={() => selectWallet(wallet.id)}
               >
@@ -179,12 +233,19 @@ function WalletsContent() {
                         className="flex size-10 items-center justify-center rounded-lg"
                         style={{ backgroundColor: `${wallet.chainColor}15` }}
                       >
-                        <Wallet className="size-5" style={{ color: wallet.chainColor }} />
+                        <Wallet
+                          className="size-5"
+                          style={{ color: wallet.chainColor }}
+                        />
                       </div>
                       <div>
                         <p className="text-sm font-semibold">{wallet.name}</p>
-                        <p className="text-xs text-muted-foreground mt-1 truncate md:hidden">{wallet.address.slice(0, 26)}...</p>
-                        <p className="text-xs text-muted-foreground mt-1 truncate hidden md:block">{wallet.address}</p>
+                        <p className="text-xs text-muted-foreground mt-1 truncate md:hidden">
+                          {wallet.address.slice(0, 26)}...
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1 truncate hidden md:block">
+                          {wallet.address}
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -192,30 +253,50 @@ function WalletsContent() {
                   <div className="flex items-end justify-between">
                     <div>
                       {/* <p className="text-xs text-muted-foreground">Balance</p> */}
-                      <p className="font-heading text-3xl font-semibold">
-                        {formatCurrency(wallet.balance)}
-                      </p>
+                      {portfolioLoading ? (
+                        <Skeleton className="h-9 w-32" />
+                      ) : (
+                        <p className="font-heading text-3xl font-semibold">
+                          {formatCurrency(
+                            wallet.type === "smart"
+                              ? portfolio?.smartWalletValue ?? 0
+                              : portfolio?.connectedWalletValue ?? 0
+                          )}
+                        </p>
+                      )}
                     </div>
                   </div>
 
                   <div className="flex gap-2">
                     {wallet.type === "connected" ? (
                       <>
-                        <Button  size="lg" className="flex-1 gap-1.5 py-5">
+                        <Button size="lg" className="flex-1 gap-1.5 py-5">
                           <ArrowDownRight className="size-3.5" />
                           Fund Your Smart Wallet
                         </Button>
-                        <Button variant="secondary" size="lg" className="gap-1.5 p-5">
+                        <Button
+                          variant="secondary"
+                          size="lg"
+                          className="gap-1.5 p-5"
+                        >
                           <Copy className="size-3.5" />
                         </Button>
                       </>
                     ) : (
                       <>
-                        <Button variant="outline" size="lg" className="flex-1 gap-1.5 p-5">
+                        <Button
+                          variant="outline"
+                          size="lg"
+                          className="flex-1 gap-1.5 p-5"
+                        >
                           <ArrowUpRight className="size-3.5" />
                           Withdraw
                         </Button>
-                        <Button variant="secondary" size="lg" className="gap-1.5 p-5">
+                        <Button
+                          variant="secondary"
+                          size="lg"
+                          className="gap-1.5 p-5"
+                        >
                           <ExternalLink className="size-3.5" />
                         </Button>
                       </>
@@ -233,9 +314,24 @@ function WalletsContent() {
             <h2>Permissions & Approvals</h2>
             <div className="space-y-3">
               {[
-                { token: "USDC", spender: "Smart Wallet", amount: "Unlimited", chain: "Base" },
-                { token: "ETH", spender: "Smart Wallet", amount: "Unlimited", chain: "Base" },
-                { token: "USDC", spender: "Bridge Contract", amount: "$1,000/day", chain: "Base" },
+                {
+                  token: "USDC",
+                  spender: "Smart Wallet",
+                  amount: "Unlimited",
+                  chain: "Base",
+                },
+                {
+                  token: "ETH",
+                  spender: "Smart Wallet",
+                  amount: "Unlimited",
+                  chain: "Base",
+                },
+                {
+                  token: "USDC",
+                  spender: "Bridge Contract",
+                  amount: "$1,000/day",
+                  chain: "Base",
+                },
               ].map((perm, i) => (
                 <div
                   key={i}
@@ -253,7 +349,11 @@ function WalletsContent() {
                     <Badge variant="outline" className="text-[10px]">
                       {perm.amount}
                     </Badge>
-                    <Button variant="ghost" size="xs" className="h-6 text-destructive">
+                    <Button
+                      variant="ghost"
+                      size="xs"
+                      className="h-6 text-destructive"
+                    >
                       Revoke
                     </Button>
                   </div>

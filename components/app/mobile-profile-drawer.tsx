@@ -14,6 +14,7 @@ import {
   Copy,
   Check,
   Wallet,
+  X,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { usePrivy } from "@privy-io/react-auth";
@@ -94,17 +95,19 @@ export function MobileProfileDrawer({
     <Drawer open={open} onOpenChange={setOpen}>
       <DrawerContent className="h-[80vh] outline-0 bg-background/95 backdrop-blur-xl border-t border-border">
         <DrawerHeader className="pb-3 border-b border-border">
-          <div className="flex items-center justify-between px-2 py-1">
+          <div className="flex items-center justify-between px-1">
             <div className="flex items-center gap-3">
               <img
                 src="/qleva-brand/new-logo-primary.png"
                 alt="logo"
                 className="w-7 h-7 object-contain"
               />
-              <span className="font-heading text-xl font-bold tracking-tight text-foreground">
+              <span className="font-heading text-2xl font-bold tracking-tight text-foreground">
                 Qleva
               </span>
             </div>
+
+            <span className="bg-card p-2 rounded-lg" onClick={() => setOpen(false)}><X /></span>
           </div>
         </DrawerHeader>
 
@@ -209,7 +212,7 @@ export function MobileProfileDrawer({
                   <span>Notifications</span>
                 </div>
                 {unreadCount > 0 && (
-                  <span className="flex relative -top-8 -right-6 min-w-6 h-6 items-center justify-center rounded-full bg-primary text-[12px] font-bold text-black">
+                  <span className="flex relative -top-6 -right-4 min-w-6 h-6 items-center justify-center rounded-full bg-primary text-[12px] font-bold text-black">
                     {unreadCount}
                   </span>
                 )}
