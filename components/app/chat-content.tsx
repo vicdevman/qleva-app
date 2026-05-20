@@ -92,11 +92,11 @@ function MessageBubble({ message }: { message: ChatMessage }) {
               </div>
             )}
             {isUser ? (
-              <div className="whitespace-pre-wrap leading-relaxed break-words">
+              <div className="whitespace-pre-wrap leading-relaxed break-words text-md">
                 {message.content}
               </div>
             ) : (
-              <div className="break-words max-w-full">
+              <div className="break-words max-w-full text-md">
                 <ReactMarkdown
                   remarkPlugins={[remarkGfm]}
                   components={{
