@@ -225,7 +225,7 @@ function MessageBubble({ message, onConfirm }: { message: ChatMessage; onConfirm
 
           {message.intentPreview && (
             <div
-              className="mt-2 w-full max-w-[calc(100vw)] sm:max-w-md"
+              className="mt-2 w-full max-w-[calc(100vw)] sm:max-w-md px-1.5"
             >
               <Card className="overflow-hidden bg-background border-border shadow-sm backdrop-blur-md">
                 <CardContent className="">
@@ -644,7 +644,7 @@ export function ChatContent({ chatId }: ChatContentProps) {
               </CardContent>
             </Card>
 
-            {hasMessages ? (
+            {hasMessages || chatId ? (
               <motion.p
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
