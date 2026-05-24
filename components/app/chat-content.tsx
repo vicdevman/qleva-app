@@ -225,7 +225,7 @@ function MessageBubble({ message, onConfirm }: { message: ChatMessage; onConfirm
 
           {message.intentPreview && (
             <div
-              className="mt-2 w-full max-w-[calc(100vw)] sm:max-w-md px-1.5"
+              className="mt-2 w-full max-w-[calc(100vw)] sm:max-w-md px-1"
             >
               <Card className="overflow-hidden bg-background border-border shadow-sm backdrop-blur-md">
                 <CardContent className="">
