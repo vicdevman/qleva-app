@@ -26,7 +26,7 @@ export default function AuthPage() {
   }, [ready, authenticated, router, user]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background relative overflow-hidden px-2 ">
+    <div className="h-[90dvh] flex items-center justify-center bg-background relative overflow-hidden px-2 ">
       {/* Background gradients */}
       {/* <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[200px] h-[300px] bg-primary/20 blur-[120px] rounded-full pointer-events-none" />
       <div className="absolute bottom-0 right-0 w-[600px] h-[400px] bg-secondary/10 blur-[100px] rounded-full pointer-events-none" /> */}

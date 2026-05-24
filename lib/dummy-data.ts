@@ -271,11 +271,33 @@ export const chatMessagesData = [
     content: "I'll help you buy $50 of ETH. Here's what I found:",
     timestamp: "2026-05-15T10:00:02Z",
     intentPreview: {
-      action: "Swap USDC → ETH",
-      amount: "$50.00",
-      chain: "Base",
-      estimatedOutput: "0.0192 ETH",
-      estimatedFee: "$0.12",
+      id: "auto_dummy_001",
+      status: "preview" as const,
+      trigger: {
+        type: "schedule" as const,
+        config: { frequency: "now" }
+      },
+      actions: [
+        {
+          type: "swap" as const,
+          config: { from: "USDC", to: "ETH", amount: "50" }
+        }
+      ],
+      risk: {
+        maxSlippage: 1.5,
+        maxTradeUsd: 50,
+        dailyVolumeLimit: 500,
+        estimatedGasUsd: 0.12
+      },
+      preview: {
+        humanReadable: "Swap USDC → ETH",
+        estimatedOutput: "0.0192 ETH",
+        estimatedFee: "$0.12",
+        permissionsRequired: [
+          { token: "USDC", amount: "50.00" }
+        ],
+        riskSummary: "Low risk, standard slippage."
+      }
     },
   },
   {

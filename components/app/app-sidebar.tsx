@@ -111,9 +111,9 @@ export function AppSidebar() {
       variant="floating"
       className="border-sidebar-border/50 hidden md:flex"
     >
-      <SidebarHeader className="flex-row items-center gap-3 px-3 py-4">
+      <SidebarHeader className="flex-row items-center gap-2 px-3 py-4">
         <Image
-          src="/qleva-brand/new-logo-primary.png"
+          src="/qleva-brand/qleva-drak.png"
           alt="logo"
           width={500}
           height={500}
@@ -126,11 +126,11 @@ export function AppSidebar() {
         </div>
       </SidebarHeader>
 
-      <SidebarSeparator />
+      {/* <SidebarSeparator /> */}
 
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Main</SidebarGroupLabel>
+          {/* <SidebarGroupLabel>Main</SidebarGroupLabel> */}
           <SidebarGroupContent>
             <SidebarMenu className="flex flex-col gap-1">
               {mainNav.map((item) => {

@@ -4,6 +4,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
+import { io, Socket } from "socket.io-client";
 import {
   Send,
   Sparkles,
@@ -38,13 +39,32 @@ interface ChatMessage {
   content: string;
   timestamp: string;
   intentPreview?: {
-    action: string;
-    amount: string;
-    chain: string;
-    estimatedOutput: string;
-    estimatedFee: string;
+    id: string;
+    status: "preview" | "active" | "completed";
+    trigger: {
+      type: "schedule" | "price_condition";
+      config: any;
+    };
+    actions: Array<{
+      type: "swap" | "transfer";
+      config: any;
+    }>;
+    risk: {
+      maxSlippage: number;
+      maxTradeUsd: number;
+      dailyVolumeLimit: number;
+      estimatedGasUsd: number;
+    };
+    preview: {
+      humanReadable: string;
+      estimatedOutput: string;
+      estimatedFee: string;
+      permissionsRequired: Array<{ token: string; amount: string }>;
+      riskSummary: string;
+    };
   };
   executionStatus?: "pending" | "executing" | "completed" | "failed";
+  automationPreview?: any;
   image?: string;
 }
 
@@ -55,15 +75,15 @@ const suggestionChips = [
   { label: "Swap USDC/ETH", icon: <ArrowRightLeft className="size-3" /> },
 ];
 
-function MessageBubble({ message }: { message: ChatMessage }) {
+function MessageBubble({ message, onConfirm }: { message: ChatMessage; onConfirm?: () => void }) {
   const isUser = message.role === "user";
 
+  console.log(message.intentPreview)
+
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
+    <div
       className={cn(
-        "flex w-full flex-col gap-2 px-0 py-2 md:px-6",
+        "flex w-full flex-col gap-2 px-0 py-5 md:px-6",
         isUser ? "items-end" : "items-start",
       )}
     >
@@ -76,7 +96,7 @@ function MessageBubble({ message }: { message: ChatMessage }) {
         >
           <div
             className={cn(
-              "relative group max-w-[90%] rounded-xl p-4 py-2 text-sm transition-all",
+              "relative group max-w-[90%] rounded-3xl rounded-br-none p-4 py-2 text-sm transition-all",
               isUser
                 ? "bg-muted/30"
                 : "p-0",
@@ -92,47 +112,47 @@ function MessageBubble({ message }: { message: ChatMessage }) {
               </div>
             )}
             {isUser ? (
-              <div className="whitespace-pre-wrap leading-relaxed break-words text-md">
+              <div className="whitespace-pre-wrap py-1 leading-relaxed break-words text-[16px]">
                 {message.content}
               </div>
             ) : (
-              <div className="break-words max-w-full text-md">
+              <div className="break-words max-w-full">
                 <ReactMarkdown
                   remarkPlugins={[remarkGfm]}
                   components={{
                     h1: ({ children }) => (
-                      <h1 className="text-xl font-bold mt-4 mb-2 text-foreground">
+                      <h1 className="text-2xl font-bold mt-4 mb-2 text-foreground">
                         {children}
                       </h1>
                     ),
                     h2: ({ children }) => (
-                      <h2 className="text-lg font-bold mt-4 mb-2 text-foreground">
+                      <h2 className="text-xl font-bold mt-4 mb-2 text-foreground">
                         {children}
                       </h2>
                     ),
                     h3: ({ children }) => (
-                      <h3 className="text-base font-semibold mt-3 mb-2 text-foreground">
+                      <h3 className="text-lg font-semibold mt-3 mb-2 text-foreground">
                         {children}
                       </h3>
                     ),
                     p: ({ children }) => (
-                      <p className="text-sm leading-relaxed text-foreground/80 mb-3 last:mb-0">
+                      <p className="text-[16px] leading-relaxed text-foreground/90 mb-3 last:mb-0">
                         {children}
                       </p>
                     ),
                     ul: ({ children }) => (
-                      <ul className="list-disc list-outside space-y-1 mb-3 ml-4 pl-2 text-sm text-foreground/80">
+                      <ul className="list-disc list-outside space-y-1 mb-3 ml-4 pl-2 text-[16px] text-foreground/90">
                         {children}
                       </ul>
                     ),
                     ol: ({ children }) => (
-                      <ol className="list-decimal list-outside space-y-1 mb-3 ml-4 pl-2 text-sm text-foreground/80">
+                      <ol className="list-decimal list-outside space-y-1 mb-3 ml-4 pl-2 text-[16px] text-foreground/90">
                         {children}
                       </ol>
                     ),
                     li: ({ children }) => <li className="pl-1">{children}</li>,
                     blockquote: ({ children }) => (
-                      <blockquote className="border-l-2 border-primary/60 bg-primary/5 pl-3 pr-2 py-2 my-3 rounded-r-md italic text-foreground/70 text-sm">
+                      <blockquote className="border-l-2 border-primary/60 bg-primary/5 pl-3 pr-2 py-2 my-3 rounded-r-md italic text-foreground/70 text-[16px]">
                         {children}
                       </blockquote>
                     ),
@@ -204,54 +224,142 @@ function MessageBubble({ message }: { message: ChatMessage }) {
           </div>
 
           {message.intentPreview && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.98 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="mt-2 w-full max-w-[calc(100vw-5rem)] sm:max-w-sm"
+            <div
+              className="mt-2 w-full max-w-[calc(100vw)] sm:max-w-md"
             >
-              <Card className="overflow-hidden border-primary/20 bg-card backdrop-blur-md">
+              <Card className="overflow-hidden bg-background border-border shadow-sm backdrop-blur-md">
                 <CardContent className="">
-                  <div className="flex items-center gap-2 font-semibold mb-4 text-xs ">
-                    <span>Transaction Preview</span>
+                  <div className="flex items-center gap-2 font-semibold mb-4 text-md">
+                    <span>Summary</span>
                   </div>
                   <div className="space-y-3">
                     <div className="flex justify-between items-center text-xs">
                       <span className="text-muted-foreground">Action</span>
-                      <span className="font-medium">
-                        {message.intentPreview.action}
+                      <span className="font-medium text-right max-w-[180px]">
+                        {message.intentPreview.preview.humanReadable}
                       </span>
                     </div>
+                    {message.intentPreview.trigger && (
+                      <><div className="flex justify-between items-center text-xs">
+                        <span className="text-muted-foreground">Trigger ({message.intentPreview.trigger.type})</span>
+                        <span className="font-medium text-right max-w-[180px]">
+                          {
+                          message.intentPreview.trigger.config.frequency ||
+                           <span>{message.intentPreview.trigger.config.conditionType.split('_').join(" ")} &nbsp; 
+                           ${message.intentPreview.trigger.config.targetValue}</span>
+                           }
+                        </span>
+                      </div>
+
+                        <div className="flex justify-between items-center text-xs pt-2">
+                          <span className="text-muted-foreground">Buy</span>
+                          <span className="font-medium text-right max-w-[180px]">
+                            ${message.intentPreview.trigger.config.amountUsd} &nbsp;
+                            {message.intentPreview.trigger.config.toToken || message.intentPreview.trigger.config.targetToken}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center text-xs pt-2">
+                          <span className="text-muted-foreground">Pay with</span>
+                          <span className="font-medium text-right max-w-[180px]">
+                            {message.intentPreview.trigger.config.fromToken}
+                          </span>
+                        </div>
+                      </>
+                    )}
                     <div className="flex justify-between items-center text-xs">
-                      <span className="text-muted-foreground">Estimate</span>
-                      <span className="font-medium text-emerald-500">
-                        {message.intentPreview.estimatedOutput}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center text-xs border-t border-primary/10 pt-2">
-                      <span className="text-muted-foreground">Est. Gas</span>
+                      <span className="text-muted-foreground">Est. Fee</span>
                       <span className="font-medium">
-                        {message.intentPreview.estimatedFee}
+                        {message.intentPreview.preview.estimatedFee}
                       </span>
                     </div>
+
+                    {/* {message.intentPreview.preview.permissionsRequired && message.intentPreview.preview.permissionsRequired.length > 0 && (
+                      <div className="flex justify-between items-start text-xs border-t border-primary/10 pt-2">
+                        <span className="text-muted-foreground">Permissions</span>
+                        <div className="flex flex-col items-end gap-1">
+                          {message.intentPreview.preview.permissionsRequired.map((perm, idx) => (
+                            <span key={idx} className="font-medium">
+                              {perm.amount} {perm.token}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )} */}
+
+                    {message.intentPreview.preview.riskSummary && (
+                      <div className="flex justify-between items-center text-xs border-t border-primary/10 pt-2">
+                        <span className="font-medium text-left mt-6 italic">
+                          {message.intentPreview.preview.riskSummary}
+                        </span>
+                      </div>
+                    )}
                   </div>
                   <div className="mt-4 flex gap-2">
                     <Button
                       size="lg"
-                      className="flex-1 h-8 text-[11px] font-bold"
+                      className="flex-1 h-10 text-[15px] font-bold"
+                      onClick={() => onConfirm?.()}
                     >
                       Confirm
-                    </Button>
-                    <Button
-                      size="lg"
-                      variant="outline"
-                      className="flex-1 h-8 text-[11px]"
-                    >
-                      Modify
                     </Button>
                   </div>
                 </CardContent>
               </Card>
-            </motion.div>
+            </div>
+          )}
+
+          {message.automationPreview && (
+            <div
+              className="mt-2 w-full max-w-[calc(100vw)] sm:max-w-md"
+            >
+              <Card className="overflow-hidden border-primary/20 bg-card backdrop-blur-md">
+                <CardContent className="">
+                  <div className="flex justify-between items-center mb-4 border-b border-border pb-3">
+                    <div className="flex items-center gap-2">
+                      {/* <div className="size-2 rounded-full bg-emerald-500 animate-pulse" /> */}
+                      <span className="font-bold text-xs tracking-wider uppercase">Active Automation</span>
+                    </div>
+                    <Badge variant="outline" className=" text-[10px] h-5">
+                      {message.automationPreview.status}
+                    </Badge>
+                  </div>
+
+                  <div className="space-y-3 mb-5">
+                    <div className="flex flex-col gap-1">
+                      <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Strategy</span>
+                      <span className="font-medium text-sm text-foreground">
+                        {message.automationPreview.preview?.humanReadable || "Custom Strategy"}
+                      </span>
+                    </div>
+
+                    {message.automationPreview.trigger && (
+                      <div className="flex justify-between items-center text-xs border-t border-primary/20 pt-2">
+                        <span className="text-muted-foreground">Trigger</span>
+                        <span className="font-medium text-right">
+                          {message.automationPreview.trigger.type}
+                        </span>
+                      </div>
+                    )}
+
+                    <div className="flex justify-between items-center text-xs border-t border-primary/20 pt-2">
+                      <span className="text-muted-foreground">ID</span>
+                      <span className="font-mono text-emerald-500/80">
+                        {message.automationPreview.id?.slice(0, 8)}...
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="outline" className="flex-1 h-8 text-[11px] font-bold border-white/10 hover:bg-white/5">
+                      Pause
+                    </Button>
+                    <Button size="sm" variant="outline" className="flex-1 h-8 text-[11px] font-bold border-red-500/30 text-red-500 hover:bg-red-500/10 hover:text-red-400">
+                      Delete
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           )}
 
           {message.executionStatus && (
@@ -261,11 +369,11 @@ function MessageBubble({ message }: { message: ChatMessage }) {
                 className={cn(
                   "gap-1.5 py-0.5 px-2.5 text-[10px] font-semibold tracking-tight",
                   message.executionStatus === "completed" &&
-                    "border-emerald-500/50 bg-emerald-500/5 text-emerald-500",
+                  "border-emerald-500/50 bg-emerald-500/5 text-emerald-500",
                   message.executionStatus === "executing" &&
-                    "border-blue-500/50 bg-blue-500/5 text-blue-500",
+                  "border-blue-500/50 bg-blue-500/5 text-blue-500",
                   message.executionStatus === "failed" &&
-                    "border-red-500/50 bg-red-500/5 text-red-500",
+                  "border-red-500/50 bg-red-500/5 text-red-500",
                 )}
               >
                 {message.executionStatus === "completed" && (
@@ -283,7 +391,7 @@ function MessageBubble({ message }: { message: ChatMessage }) {
           )}
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 }
 
@@ -298,9 +406,40 @@ export function ChatContent({ chatId }: ChatContentProps) {
   const { data: dummyMessages } = useChatMessages(chatId);
   const [messages, setMessages] = React.useState<ChatMessage[]>([]);
   const [input, setInput] = React.useState("");
-  const [streamingAction, setStreamingAction] = React.useState<string | null>(null);
+  const [streamingSteps, setStreamingSteps] = React.useState<{ id: string; message: string; status: string; completed: boolean }[]>([]);
+  const [isThinking, setIsThinking] = React.useState(false);
   const [attachedImage, setAttachedImage] = React.useState<string | null>(null);
   const scrollRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+    const socket = io(baseUrl, {
+      transports: ["websocket"],
+    });
+
+    socket.on("connect", () => {
+      console.log("Connected to agent event stream");
+    });
+
+    socket.on("qleva_event", (event: any) => {
+      if (event.type === "AGENT_STATUS_UPDATE") {
+        const { status, message } = event.payload;
+        setStreamingSteps(prev => {
+          const prevSteps = prev.map(s => ({ ...s, completed: true }));
+          if (prevSteps.length > 0 && prevSteps[prevSteps.length - 1].message === message) {
+            return prevSteps;
+          }
+          return [...prevSteps, { id: Date.now().toString() + Math.random().toString(), message, status, completed: false }];
+        });
+      } else if (event.type === "AGENT_EXECUTION_DONE") {
+        setIsThinking(false);
+      }
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, []);
 
   React.useEffect(() => {
     // Only load messages if we are viewing an existing chat
@@ -315,7 +454,7 @@ export function ChatContent({ chatId }: ChatContentProps) {
     if (scrollRef.current) {
       scrollRef.current.scrollIntoView({ behavior: "smooth" });
     }
-  }, [messages, streamingAction]);
+  }, [messages, streamingSteps, isThinking]);
 
   const handleSend = async (
     text: string = input,
@@ -334,7 +473,8 @@ export function ChatContent({ chatId }: ChatContentProps) {
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
     setAttachedImage(null);
-    setStreamingAction("Qleva is formulating execution script...");
+    setStreamingSteps([{ id: "init", message: "Qleva is formulating execution script...", status: "init", completed: false }]);
+    setIsThinking(true);
 
     try {
       const token = await getAccessToken();
@@ -359,14 +499,15 @@ export function ChatContent({ chatId }: ChatContentProps) {
         const returnedChatId = data.chatId;
         const returnedMessages = data.messages;
 
-        setStreamingAction(null);
-        
+        setIsThinking(false);
+        setStreamingSteps([]);
+
         // Cache the returned database messages and route to the new ID!
         queryClient.setQueryData(["chat-messages", returnedChatId], returnedMessages);
-        
+
         // Set local state to show response instantly before transition
         setMessages(returnedMessages);
-        
+
         router.push(`/chat/${returnedChatId}`);
       } else {
         // Post message to existing chat session
@@ -384,8 +525,9 @@ export function ChatContent({ chatId }: ChatContentProps) {
         }
 
         const aiMessage = await response.json();
-        
-        setStreamingAction(null);
+
+        setIsThinking(false);
+        setStreamingSteps([]);
         setMessages((prev) => {
           const finalMessages = [...prev, aiMessage];
           // Update Query cache for this chat session
@@ -395,8 +537,9 @@ export function ChatContent({ chatId }: ChatContentProps) {
       }
     } catch (error) {
       console.error("[ChatContent] API execution error:", error);
-      setStreamingAction(null);
-      
+      setIsThinking(false);
+      setStreamingSteps([]);
+
       const errorMessage: ChatMessage = {
         id: `err_${Date.now()}`,
         role: "assistant",
@@ -413,17 +556,15 @@ export function ChatContent({ chatId }: ChatContentProps) {
     <AppShell>
       <div className="relative flex md:h-[calc(100svh-6rem)] w-full flex-col overflow-hidden bg-background">
         <AnimatePresence>
-          {!hasMessages ? (
+          {!hasMessages && !chatId ? (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0, y: -20 }}
-              className="flex-1 flex flex-col items-center justify-center p-6 text-center z-0"
+              className="flex-1 flex flex-col items-center p-6 text-center z-0"
             >
-              <motion.div className="md:mb-26 max-md:mt-10">
-                <h1 className="text-3xl font-bold tracking-tight mb-2">
-                  How can I help you?
-                </h1>
+              <motion.div className="mt-20 md:16">
+                <h1 className="text-3xl font-bold tracking-tight mb-2">How can I help you?</h1>
                 <p className="text-muted-foreground max-w-md mx-auto text-md">
                   I'm your decentralized agent. I can help with swaps
                   and complex automations.
@@ -434,19 +575,28 @@ export function ChatContent({ chatId }: ChatContentProps) {
             <div className="flex-1 overflow-y-auto scroll-smooth no-scrollbar">
               <div className="mx-auto max-w-4xl pb-40">
                 {messages.map((msg) => (
-                  <MessageBubble key={msg.id} message={msg} />
+                  <MessageBubble key={msg.id} message={msg} onConfirm={() => handleSend("Confirm")} />
                 ))}
-                {streamingAction && (
-                  <motion.div 
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="flex items-center gap-3 w-full max-w-3xl mx-auto mt-4"
-                  >
-                    <Loader2 className="size-4 animate-spin text-primary" />
-                    <span className="text-xs font-mono tracking-tight text-muted-foreground">
-                      {streamingAction}
-                    </span>
-                  </motion.div>
+                {isThinking && streamingSteps.length > 0 && (
+                  <div className="flex flex-col gap-2 w-full max-w-3xl mx-auto mt-4 px-0 md:px-0">
+                    <div className="flex flex-col gap-2 border-white/5 max-w-[80%]">
+                      {streamingSteps.map((step) => (
+                        <div key={step.id} className="flex items-start gap-3">
+                          {step.completed ? (
+                            <CheckCircle2 className="size-4 text-emerald-500 mt-0.5" />
+                          ) : (
+                            <Loader2 className="size-4 animate-spin text-primary mt-0.5" />
+                          )}
+                          <span className={cn(
+                            "text-sm font-medium tracking-tight",
+                            step.completed ? "text-muted-foreground" : "text-foreground"
+                          )}>
+                            {step.message}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 )}
                 <div ref={scrollRef} className="h-4" />
               </div>
@@ -457,8 +607,8 @@ export function ChatContent({ chatId }: ChatContentProps) {
         {/* Input Area */}
         <div
           className={cn(
-            "fixed md:absolute left-0 right-0 z-20 px-3 transition-all duration-1000 ease-[cubic-bezier(0.23,1,0.32,1)]",
-            hasMessages ? "bottom-3 md:bottom-1" : "top-92 -translate-y-1/2"
+            "fixed md:absolute left-0 right-0 z-20 px-3",
+            hasMessages || chatId ? "bottom-2 md:bottom-0" : "top-100 md:top-80 -translate-y-1/2"
           )}
         >
           <div className="mx-auto w-full max-w-3xl">
@@ -469,7 +619,7 @@ export function ChatContent({ chatId }: ChatContentProps) {
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     placeholder="Ask Qleva anything..."
-                    className="max-h-[150px] -mt-1 overflow-y-auto focus-visible:ring-0 rounded-xs resize-none p-1 custom-scrollbar text-base"
+                    className="max-h-[180px] -mt-1 overflow-y-auto focus-visible:ring-0 rounded-xs resize-none p-1 custom-scrollbar text-base"
                     style={{
                       backgroundColor: "transparent",
                       border: "0",

@@ -32,7 +32,7 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 
   if (!ready) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="h-[80dvh] flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-2 text-background  ">
           <Facehash
             name={name}

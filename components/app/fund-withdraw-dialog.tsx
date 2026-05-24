@@ -93,9 +93,9 @@ export function FundWithdrawDialogs() {
     <div className="p-4 space-y-4">
       {step === "idle" && (
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 bg-muted/50 p-1 rounded-xl">
-            <TabsTrigger value="internal" className="rounded-lg py-2">Transfer</TabsTrigger>
-            <TabsTrigger value="external" className="rounded-lg py-2">External</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-2 bg-muted/80 p-1 rounded-xl">
+            <TabsTrigger value="internal" className="rounded-lg">Transfer</TabsTrigger>
+            <TabsTrigger value="external" className="rounded-lg">External</TabsTrigger>
           </TabsList>
           
           <TabsContent value="internal" className="space-y-4 pt-4">
@@ -183,11 +183,11 @@ export function FundWithdrawDialogs() {
 
             <div className="space-y-2">
               <label className="text-xs text-muted-foreground font-medium">Smart Wallet Deposit Address</label>
-              <div className="flex items-center gap-2 border rounded-xl p-2.5 bg-muted/30">
-                <p className="text-xs font-mono font-medium truncate flex-1 pl-1.5">
+              <div className="flex items-center justify-between gap-2 border rounded-xl p-2.5 bg-muted/30">
+                <p className="text-xs font-mono font-medium  flex-1 pl-1.5 overflow-scroll scrollbar-none max-w-[290px]">
                   {smartWallet?.address || "0x3e8C42fb6728001a2B548817a1772fb2a1881a2B"}
                 </p>
-                <Button variant="ghost" size="icon-sm" onClick={handleCopyAddress} className="rounded-lg">
+                <Button variant="ghost" size="icon-sm" onClick={handleCopyAddress} className="rounded-lg bg-background">
                   {copied ? <Check className="size-3.5 text-green-500" /> : <Copy className="size-3.5" />}
                 </Button>
               </div>
