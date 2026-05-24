@@ -96,7 +96,7 @@ function MessageBubble({ message, onConfirm }: { message: ChatMessage; onConfirm
         >
           <div
             className={cn(
-              "relative group max-w-[90%] rounded-3xl rounded-br-none p-4 py-2 text-sm transition-all",
+              "relative group max-w-[95%] rounded-3xl rounded-br-none p-4 py-2 text-sm transition-all",
               isUser
                 ? "bg-muted/30"
                 : "p-0",
@@ -225,7 +225,7 @@ function MessageBubble({ message, onConfirm }: { message: ChatMessage; onConfirm
 
           {message.intentPreview && (
             <div
-              className="mt-2 w-full max-w-[calc(100vw)] sm:max-w-md px-1"
+              className="mt-2 w-full max-w-[calc(100vw)] sm:max-w-md px-0.5"
             >
               <Card className="overflow-hidden bg-background border-border shadow-sm backdrop-blur-md">
                 <CardContent className="">
@@ -608,11 +608,11 @@ export function ChatContent({ chatId }: ChatContentProps) {
         <div
           className={cn(
             "fixed md:absolute left-0 right-0 z-20 px-3",
-            hasMessages || chatId ? "bottom-2 md:bottom-0" : "top-100 md:top-80 -translate-y-1/2"
+            hasMessages || chatId ? "bottom-2 md:bottom-0.5" : "top-100 md:top-80 -translate-y-1/2"
           )}
         >
           <div className="mx-auto w-full max-w-3xl">
-            <Card className="overflow-hidden border border-border/50 backdrop-blur-xl bg-card/70 rounded-2xl ">
+            <Card className="overflow-hidden border border-border/50 backdrop-blur-xl bg-card/80 rounded-2xl ">
               <CardContent className="p-0">
                 <div className="flex items-end gap-3 px-3">
                   <Textarea
