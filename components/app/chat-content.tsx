@@ -22,6 +22,12 @@ import {
   Clock,
   Loader2,
   Brain,
+  ChevronDown,
+  ChevronUp,
+  Copy,
+  Check,
+  ThumbsUp,
+  ThumbsDown,
 } from "lucide-react";
 import { AppShell } from "@/components/app/app-shell";
 import { Card, CardContent } from "@/components/ui/card";
@@ -79,6 +85,29 @@ function MessageBubble({ message, onConfirm }: { message: ChatMessage; onConfirm
   const isUser = message.role === "user";
 
   console.log(message.intentPreview)
+  const [copied, setCopied] = React.useState(false);
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(message.content || "");
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1600);
+    } catch (e) {
+      // fallback
+      try {
+        const ta = document.createElement("textarea");
+        ta.value = message.content || "";
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        document.body.removeChild(ta);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1600);
+      } catch (err) {
+        console.error("Copy failed", err);
+      }
+    }
+  };
 
   return (
     <div
@@ -96,7 +125,7 @@ function MessageBubble({ message, onConfirm }: { message: ChatMessage; onConfirm
         >
           <div
             className={cn(
-              "relative group max-w-[95%] rounded-3xl rounded-br-none p-4 py-2 text-sm transition-all",
+              "relative group max-w-[98%] rounded-3xl rounded-br-none p-4 py-2 text-sm transition-all",
               isUser
                 ? "bg-muted/30"
                 : "p-0",
@@ -221,11 +250,57 @@ function MessageBubble({ message, onConfirm }: { message: ChatMessage; onConfirm
                 </ReactMarkdown>
               </div>
             )}
+
+            {/* Copy button (desktop only, appears on hover) */}
+            <div  className={cn(
+            "absolute -bottom-7.5 flex items-center",
+            isUser ? "right-0" : "left-0",
+          )}>
+              <button
+                onClick={handleCopy}
+                className= {cn(
+            "group-hover:opacity-100 transition-opacity bg-transparent flex items-center justify-center p-1 rounded-full text-muted-foreground hover:text-foreground",
+            isUser ? "opacity-0" : "md:opacity-0",
+          )}
+                aria-label="Copy message"
+                title="Copy message"
+              >
+                {copied ? (
+                  <Check className="size-4 text-emerald-500" />
+                ) : (
+                  <Copy className="size-4" />
+                )}
+              </button>
+
+             {!isUser && <>
+             
+             <button
+                className="md:opacity-0 ml-2 group-hover:opacity-100 transition-opacity bg-transparent flex items-center justify-center p-1 rounded-full text-muted-foreground hover:text-foreground"
+                aria-label="Like message"
+                title="Like message"
+              >
+               
+                  <ThumbsUp className="size-4" />
+              
+              </button>
+             <button
+                className="md:opacity-0 ml-1 group-hover:opacity-100 transition-opacity bg-transparent flex items-center justify-center p-1 rounded-full text-muted-foreground hover:text-foreground"
+                aria-label="Dislike message"
+                title="Dislike message"
+              >
+               
+                  <ThumbsDown className="size-4" />
+              
+              </button>
+              
+              
+              </> }
+            </div>
           </div>
 
           {message.intentPreview && (
             <div
-              className="mt-2 w-full max-w-[calc(100vw)] sm:max-w-md px-0.5"
+              className="mt-8 w-full max-w-[calc(100vw)] sm:max-w-md px-0.5"
             >
               <Card className="overflow-hidden bg-background border-border shadow-sm backdrop-blur-md">
                 <CardContent className="">
@@ -407,6 +482,7 @@ export function ChatContent({ chatId }: ChatContentProps) {
   const [messages, setMessages] = React.useState<ChatMessage[]>([]);
   const [input, setInput] = React.useState("");
   const [streamingSteps, setStreamingSteps] = React.useState<{ id: string; message: string; status: string; completed: boolean }[]>([]);
+  const [streamingCollapsed, setStreamingCollapsed] = React.useState(true);
   const [isThinking, setIsThinking] = React.useState(false);
   const [attachedImage, setAttachedImage] = React.useState<string | null>(null);
   const scrollRef = React.useRef<HTMLDivElement>(null);
@@ -579,8 +655,27 @@ export function ChatContent({ chatId }: ChatContentProps) {
                 ))}
                 {isThinking && streamingSteps.length > 0 && (
                   <div className="flex flex-col gap-2 w-full max-w-3xl mx-auto mt-4 px-0 md:px-0">
+                    <div className="flex items-center justify-between gap-3 max-w-[80%]">
+                      <div className="flex items-center gap-2 text-sm font-semibold text-foreground/90">
+                        <Brain className="size-4 text-primary" />
+                        <span>Thinking</span>
+                      </div>
+                      <button
+                        aria-label={streamingCollapsed ? "Expand thinking steps" : "Collapse thinking steps"}
+                        title={streamingCollapsed ? "Show all steps" : "Show only last two"}
+                        onClick={() => setStreamingCollapsed((s) => !s)}
+                        className="group flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        {streamingCollapsed ? (
+                          <ChevronDown className="size-4" />
+                        ) : (
+                          <ChevronUp className="size-4" />
+                        )}
+                      </button>
+                    </div>
+
                     <div className="flex flex-col gap-2 border-white/5 max-w-[80%]">
-                      {streamingSteps.map((step) => (
+                      {(streamingCollapsed ? streamingSteps.slice(-2) : streamingSteps).map((step) => (
                         <div key={step.id} className="flex items-start gap-3">
                           {step.completed ? (
                             <CheckCircle2 className="size-4 text-emerald-500 mt-0.5" />
@@ -635,7 +730,7 @@ export function ChatContent({ chatId }: ChatContentProps) {
                     <Button
                       size="icon-lg"
                       onClick={() => handleSend()}
-                      disabled={!input.trim() && !attachedImage}
+                      disabled={!input.trim() && !attachedImage || isThinking}
                     >
                       <ArrowUp className="size-5 font-bold" />
                     </Button>

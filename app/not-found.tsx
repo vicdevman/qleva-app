@@ -27,7 +27,7 @@ export default function NotFound() {
           intensity3d="subtle"
           enableBlink
         />
-        <h1 className="font-heading text-7xl md:text-9xl font-bold tracking-tight mb-4 text-transparent bg-clip-text bg-linear-to-b from-foreground to-foreground/50">
+        <h1 className="font-heading text-7xl md:text-9xl font-bold tracking-tight my-4 text-transparent bg-clip-text bg-linear-to-b from-foreground to-foreground/50">
           404
         </h1>
         <h2 className="text-2xl md:text-3xl font-semibold mb-3">
