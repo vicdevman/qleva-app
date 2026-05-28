@@ -112,7 +112,7 @@ function MessageBubble({ message, onConfirm }: { message: ChatMessage; onConfirm
   return (
     <div
       className={cn(
-        "flex w-full flex-col gap-2 px-0 py-5 md:px-6",
+        "flex w-full flex-col gap-2 px-0 py-6 md:px-6",
         isUser ? "items-end" : "items-start",
       )}
     >
@@ -300,22 +300,22 @@ function MessageBubble({ message, onConfirm }: { message: ChatMessage; onConfirm
 
           {message.intentPreview && (
             <div
-              className="mt-8 w-full max-w-[calc(100vw)] sm:max-w-md px-0.5"
+              className="mt-10 w-full max-w-[calc(100vw)] sm:max-w-md px-0.5"
             >
               <Card className="overflow-hidden bg-background border-border shadow-sm backdrop-blur-md">
                 <CardContent className="">
-                  <div className="flex items-center gap-2 font-semibold mb-4 text-md">
-                    <span>Summary</span>
+                  <div className="flex items-center gap-2 font-semibold mb-4 text-lg">
+                    Summary
                   </div>
                   <div className="space-y-3">
-                    <div className="flex justify-between items-center text-xs">
+                    <div className="flex justify-between items-center text-md">
                       <span className="text-muted-foreground">Action</span>
-                      <span className="font-medium text-right max-w-[180px]">
+                      <span className="font-medium text-right max-w-[190px]">
                         {message.intentPreview.preview.humanReadable}
                       </span>
                     </div>
                     {message.intentPreview.trigger && (
-                      <><div className="flex justify-between items-center text-xs">
+                      <><div className="flex justify-between items-center text-md">
                         <span className="text-muted-foreground">Trigger ({message.intentPreview.trigger.type})</span>
                         <span className="font-medium text-right max-w-[180px]">
                           {
@@ -326,14 +326,14 @@ function MessageBubble({ message, onConfirm }: { message: ChatMessage; onConfirm
                         </span>
                       </div>
 
-                        <div className="flex justify-between items-center text-xs pt-2">
+                        <div className="flex justify-between items-center text-md pt-2">
                           <span className="text-muted-foreground">Buy</span>
                           <span className="font-medium text-right max-w-[180px]">
                             ${message.intentPreview.trigger.config.amountUsd} &nbsp;
                             {message.intentPreview.trigger.config.toToken || message.intentPreview.trigger.config.targetToken}
                           </span>
                         </div>
-                        <div className="flex justify-between items-center text-xs pt-2">
+                        <div className="flex justify-between items-center text-md pt-2">
                           <span className="text-muted-foreground">Pay with</span>
                           <span className="font-medium text-right max-w-[180px]">
                             {message.intentPreview.trigger.config.fromToken}
@@ -341,7 +341,7 @@ function MessageBubble({ message, onConfirm }: { message: ChatMessage; onConfirm
                         </div>
                       </>
                     )}
-                    <div className="flex justify-between items-center text-xs">
+                    <div className="flex justify-between items-center text-md">
                       <span className="text-muted-foreground">Est. Fee</span>
                       <span className="font-medium">
                         {message.intentPreview.preview.estimatedFee}
@@ -362,7 +362,7 @@ function MessageBubble({ message, onConfirm }: { message: ChatMessage; onConfirm
                     )} */}
 
                     {message.intentPreview.preview.riskSummary && (
-                      <div className="flex justify-between items-center text-xs border-t border-primary/10 pt-2">
+                      <div className="flex justify-between items-center text-sm text-accent-foreground/60 border-t border-primary/10 pt-2">
                         <span className="font-medium text-left mt-6 italic">
                           {message.intentPreview.preview.riskSummary}
                         </span>
@@ -649,7 +649,7 @@ export function ChatContent({ chatId }: ChatContentProps) {
             </motion.div>
           ) : (
             <div className="flex-1 overflow-y-auto scroll-smooth no-scrollbar">
-              <div className="mx-auto max-w-4xl pb-40">
+              <div className="mx-auto max-w-4xl pb-30">
                 {messages.map((msg) => (
                   <MessageBubble key={msg.id} message={msg} onConfirm={() => handleSend("Confirm")} />
                 ))}
