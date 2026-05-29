@@ -36,9 +36,10 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 
 const mainNav = [
+    { title: "New chat", url: "/chat", icon: MessageCirclePlus },
   // { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
   { title: "Portfolio", url: "/portfolio", icon: AlignEndHorizontal },
-  { title: "New chat", url: "/chat", icon: MessageCirclePlus },
+
   { title: "Automations", url: "/automations", icon: Workflow },
 
   // { title: "Activity", url: "/activity", icon: Clock },

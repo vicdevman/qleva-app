@@ -52,9 +52,10 @@ import { Facehash } from "facehash";
 import { useChatsList } from "@/lib/query-hooks";
 
 const mainNav = [
+  { title: "New chat", url: "/chat", icon: MessageCirclePlus },
   { title: "Portfolio", url: "/portfolio", icon: AlignEndHorizontal },
   // { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
-  { title: "New chat", url: "/chat", icon: MessageCirclePlus },
+  
   { title: "Automations", url: "/automations", icon: Workflow },
 
   // { title: "Activity", url: "/activity", icon: Clock },
@@ -164,7 +165,7 @@ export function AppSidebar() {
             <SidebarGroupLabel>Recent chats</SidebarGroupLabel>
             <Link
               href="/chat"
-              className="flex size-5 items-center justify-center rounded-md hover:bg-primary/50 text-muted-foreground transition-colors"
+              className="flex size-5 items-center justify-center rounded-md text-muted-foreground transition-colors"
             >
               <Button size="sm" variant="ghost" className="text-xs">
                 <Plus className="size-3" /> New
