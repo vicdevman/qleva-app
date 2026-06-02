@@ -112,7 +112,7 @@ export function AppSidebar() {
       variant="floating"
       className="border-sidebar-border/50 hidden md:flex"
     >
-      <SidebarHeader className="flex-row items-center gap-2 px-3 py-4">
+      <SidebarHeader className="flex-row items-center gap-2 px-4 py-3">
         <Image
           src="/qleva-brand/qleva-drak.png"
           alt="logo"

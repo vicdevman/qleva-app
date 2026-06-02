@@ -77,7 +77,6 @@ interface ChatMessage {
 const suggestionChips = [
   { label: "Buy $100 ETH", icon: <TrendingUp className="size-3" /> },
   { label: "Setup DCA", icon: <Zap className="size-3" /> },
-  { label: "Setup DCA", icon: <Zap className="size-3" /> },
   { label: "Swap USDC/ETH", icon: <ArrowRightLeft className="size-3" /> },
 ];
 
@@ -639,7 +638,7 @@ export function ChatContent({ chatId }: ChatContentProps) {
               exit={{ opacity: 0, y: -20 }}
               className="flex-1 flex flex-col items-center p-6 text-center z-0"
             >
-              <motion.div className="mt-20 md:16">
+              <motion.div className="mt-18 md:16">
                 <h1 className="text-3xl font-bold tracking-tight mb-2">How can I help you?</h1>
                 <p className="text-muted-foreground max-w-md mx-auto text-md">
                   I'm your decentralized agent. I can help with swaps
@@ -706,7 +705,7 @@ export function ChatContent({ chatId }: ChatContentProps) {
             hasMessages || chatId ? "bottom-2 md:bottom-0.5" : "top-100 md:top-80 -translate-y-1/2"
           )}
         >
-          <div className="mx-auto w-full max-w-3xl">
+         <div className={`mx-auto w-full ${hasMessages || chatId ? "max-w-3xl" : "max-w-2xl"}`}>
             <Card className="overflow-hidden border border-border/50 backdrop-blur-xl bg-card/80 rounded-2xl ">
               <CardContent className="p-0">
                 <div className="flex items-end gap-3 px-3">

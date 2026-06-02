@@ -128,12 +128,7 @@ function PortfolioContent() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" className="gap-2">
-              <Download className="size-3.5" />
-              Export
-            </Button>
-            <Button size="sm" className="gap-2" onClick={() => setFundDialogOpen(true)}>
-              <ArrowRightLeft className="size-3.5" />
+            <Button size="lg" className="gap-2 w-full" onClick={() => setFundDialogOpen(true)}>
               Fund Wallet
             </Button>
           </div>
@@ -213,7 +208,7 @@ function PortfolioContent() {
         </motion.div>
 
         {/* Charts */}
-        <div className="grid gap-4 lg:grid-cols-3">
+        {/* <div className="grid gap-4 lg:grid-cols-3">
           <motion.div variants={item} className="lg:col-span-2 min-w-0">
             <Card>
               <CardHeader className="flex flex-row flex-wrap items-center justify-between pb-2 gap-y-2">
@@ -321,7 +316,7 @@ function PortfolioContent() {
               )}
             </SectionCard>
           </motion.div>
-        </div>
+        </div> */}
 
         {/* Assets & Activity Tabs */}
         <motion.div variants={item} className="mt-4 min-w-0">
