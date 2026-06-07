@@ -5,6 +5,7 @@ import remarkGfm from "remark-gfm";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { io, Socket } from "socket.io-client";
+import ShinyText from '../ShinyText';
 import {
   Send,
   Sparkles,
@@ -38,6 +39,7 @@ import { useChatMessages, useSendMessage } from "@/lib/query-hooks";
 import { useQueryClient } from "@tanstack/react-query";
 import { usePrivy } from "@privy-io/react-auth";
 import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface ChatMessage {
   id: string;
@@ -80,10 +82,16 @@ const suggestionChips = [
   { label: "Swap USDC/ETH", icon: <ArrowRightLeft className="size-3" /> },
 ];
 
-function MessageBubble({ message, onConfirm }: { message: ChatMessage; onConfirm?: () => void }) {
+function MessageBubble({
+  message,
+  onConfirm,
+}: {
+  message: ChatMessage;
+  onConfirm?: () => void;
+}) {
   const isUser = message.role === "user";
 
-  console.log(message.intentPreview)
+  console.log(message.intentPreview);
   const [copied, setCopied] = React.useState(false);
 
   const handleCopy = async () => {
@@ -124,10 +132,11 @@ function MessageBubble({ message, onConfirm }: { message: ChatMessage; onConfirm
         >
           <div
             className={cn(
-              "relative group max-w-[98%] rounded-3xl rounded-br-none p-4 py-2 text-sm transition-all",
+              // Assistant messages should occupy full width; user messages limited to 80%.
+              "relative group rounded-3xl rounded-br-none p-4 py-2 text-sm transition-all",
               isUser
-                ? "bg-muted/30"
-                : "p-0",
+                ? "max-w-[70%] ml-auto bg-muted/30"
+                : "w-full max-w-full p-0",
             )}
           >
             {message.image && (
@@ -192,7 +201,9 @@ function MessageBubble({ message, onConfirm }: { message: ChatMessage; onConfirm
                       ) : (
                         <div className="my-3 overflow-hidden rounded-xl bg-zinc-950 border border-white/10 w-full max-w-full overflow-x-auto">
                           <div className="flex items-center justify-between px-4 py-2 bg-zinc-900 border-b border-white/5 min-w-max">
-                            <span className="text-[10px] text-zinc-400 uppercase tracking-widest font-bold">Code</span>
+                            <span className="text-[10px] text-zinc-400 uppercase tracking-widest font-bold">
+                              Code
+                            </span>
                             <div className="flex gap-1.5">
                               <div className="size-2 rounded-full bg-zinc-700" />
                               <div className="size-2 rounded-full bg-zinc-700" />
@@ -200,7 +211,10 @@ function MessageBubble({ message, onConfirm }: { message: ChatMessage; onConfirm
                             </div>
                           </div>
                           <pre className="p-4 overflow-x-auto min-w-max">
-                            <code className="font-mono text-xs leading-relaxed text-emerald-400" {...props}>
+                            <code
+                              className="font-mono text-xs leading-relaxed text-emerald-400"
+                              {...props}
+                            >
                               {children}
                             </code>
                           </pre>
@@ -251,16 +265,18 @@ function MessageBubble({ message, onConfirm }: { message: ChatMessage; onConfirm
             )}
 
             {/* Copy button (desktop only, appears on hover) */}
-            <div  className={cn(
-            "absolute -bottom-7.5 flex items-center",
-            isUser ? "right-0" : "left-0",
-          )}>
+            <div
+              className={cn(
+                "absolute -bottom-7.5 flex items-center",
+                isUser ? "right-0" : "left-0",
+              )}
+            >
               <button
                 onClick={handleCopy}
-                className= {cn(
-            "group-hover:opacity-100 transition-opacity bg-transparent flex items-center justify-center p-1 rounded-full text-muted-foreground hover:text-foreground",
-            isUser ? "opacity-0" : "md:opacity-0",
-          )}
+                className={cn(
+                  "group-hover:opacity-100 transition-opacity bg-transparent flex items-center justify-center p-1 rounded-full text-muted-foreground hover:text-foreground",
+                  isUser ? "opacity-0" : "opacity-100",
+                )}
                 aria-label="Copy message"
                 title="Copy message"
               >
@@ -271,36 +287,29 @@ function MessageBubble({ message, onConfirm }: { message: ChatMessage; onConfirm
                 )}
               </button>
 
-             {!isUser && <>
-             
-             <button
-                className="md:opacity-0 ml-2 group-hover:opacity-100 transition-opacity bg-transparent flex items-center justify-center p-1 rounded-full text-muted-foreground hover:text-foreground"
-                aria-label="Like message"
-                title="Like message"
-              >
-               
-                  <ThumbsUp className="size-4" />
-              
-              </button>
-             <button
-                className="md:opacity-0 ml-1 group-hover:opacity-100 transition-opacity bg-transparent flex items-center justify-center p-1 rounded-full text-muted-foreground hover:text-foreground"
-                aria-label="Dislike message"
-                title="Dislike message"
-              >
-               
-                  <ThumbsDown className="size-4" />
-              
-              </button>
-              
-              
-              </> }
+              {!isUser && (
+                <>
+                  <button
+                    className=" ml-2 group-hover:opacity-100 transition-opacity bg-transparent flex items-center justify-center p-1 rounded-full text-muted-foreground hover:text-foreground"
+                    aria-label="Like message"
+                    title="Like message"
+                  >
+                    <ThumbsUp className="size-4" />
+                  </button>
+                  <button
+                    className=" ml-1 group-hover:opacity-100 transition-opacity bg-transparent flex items-center justify-center p-1 rounded-full text-muted-foreground hover:text-foreground"
+                    aria-label="Dislike message"
+                    title="Dislike message"
+                  >
+                    <ThumbsDown className="size-4" />
+                  </button>
+                </>
+              )}
             </div>
           </div>
 
           {message.intentPreview && (
-            <div
-              className="mt-10 w-full max-w-[calc(100vw)] sm:max-w-md px-0.5"
-            >
+            <div className="mt-10 w-full max-w-[calc(100vw)] sm:max-w-md px-0.5">
               <Card className="overflow-hidden bg-background border-border shadow-sm backdrop-blur-md">
                 <CardContent className="">
                   <div className="flex items-center gap-2 font-semibold mb-4 text-lg">
@@ -314,26 +323,40 @@ function MessageBubble({ message, onConfirm }: { message: ChatMessage; onConfirm
                       </span>
                     </div>
                     {message.intentPreview.trigger && (
-                      <><div className="flex justify-between items-center text-md">
-                        <span className="text-muted-foreground">Trigger ({message.intentPreview.trigger.type})</span>
-                        <span className="font-medium text-right max-w-[180px]">
-                          {
-                          message.intentPreview.trigger.config.frequency ||
-                           <span>{message.intentPreview.trigger.config.conditionType.split('_').join(" ")} &nbsp; 
-                           ${message.intentPreview.trigger.config.targetValue}</span>
-                           }
-                        </span>
-                      </div>
+                      <>
+                        <div className="flex justify-between items-center text-md">
+                          <span className="text-muted-foreground">
+                            Trigger ({message.intentPreview.trigger.type})
+                          </span>
+                          <span className="font-medium text-right max-w-[180px]">
+                            {message.intentPreview.trigger.config.frequency || (
+                              <span>
+                                {message.intentPreview.trigger.config.conditionType
+                                  .split("_")
+                                  .join(" ")}{" "}
+                                &nbsp; $
+                                {
+                                  message.intentPreview.trigger.config
+                                    .targetValue
+                                }
+                              </span>
+                            )}
+                          </span>
+                        </div>
 
                         <div className="flex justify-between items-center text-md pt-2">
                           <span className="text-muted-foreground">Buy</span>
                           <span className="font-medium text-right max-w-[180px]">
-                            ${message.intentPreview.trigger.config.amountUsd} &nbsp;
-                            {message.intentPreview.trigger.config.toToken || message.intentPreview.trigger.config.targetToken}
+                            ${message.intentPreview.trigger.config.amountUsd}{" "}
+                            &nbsp;
+                            {message.intentPreview.trigger.config.toToken ||
+                              message.intentPreview.trigger.config.targetToken}
                           </span>
                         </div>
                         <div className="flex justify-between items-center text-md pt-2">
-                          <span className="text-muted-foreground">Pay with</span>
+                          <span className="text-muted-foreground">
+                            Pay with
+                          </span>
                           <span className="font-medium text-right max-w-[180px]">
                             {message.intentPreview.trigger.config.fromToken}
                           </span>
@@ -383,15 +406,15 @@ function MessageBubble({ message, onConfirm }: { message: ChatMessage; onConfirm
           )}
 
           {message.automationPreview && (
-            <div
-              className="mt-2 w-full max-w-[calc(100vw)] sm:max-w-md"
-            >
+            <div className="mt-2 w-full max-w-[calc(100vw)] sm:max-w-md">
               <Card className="overflow-hidden border-primary/20 bg-card backdrop-blur-md">
                 <CardContent className="">
                   <div className="flex justify-between items-center mb-4 border-b border-border pb-3">
                     <div className="flex items-center gap-2">
                       {/* <div className="size-2 rounded-full bg-emerald-500 animate-pulse" /> */}
-                      <span className="font-bold text-xs tracking-wider uppercase">Active Automation</span>
+                      <span className="font-bold text-xs tracking-wider uppercase">
+                        Active Automation
+                      </span>
                     </div>
                     <Badge variant="outline" className=" text-[10px] h-5">
                       {message.automationPreview.status}
@@ -400,9 +423,12 @@ function MessageBubble({ message, onConfirm }: { message: ChatMessage; onConfirm
 
                   <div className="space-y-3 mb-5">
                     <div className="flex flex-col gap-1">
-                      <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Strategy</span>
+                      <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">
+                        Strategy
+                      </span>
                       <span className="font-medium text-sm text-foreground">
-                        {message.automationPreview.preview?.humanReadable || "Custom Strategy"}
+                        {message.automationPreview.preview?.humanReadable ||
+                          "Custom Strategy"}
                       </span>
                     </div>
 
@@ -424,10 +450,18 @@ function MessageBubble({ message, onConfirm }: { message: ChatMessage; onConfirm
                   </div>
 
                   <div className="flex gap-2">
-                    <Button size="sm" variant="outline" className="flex-1 h-8 text-[11px] font-bold border-white/10 hover:bg-white/5">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="flex-1 h-8 text-[11px] font-bold border-white/10 hover:bg-white/5"
+                    >
                       Pause
                     </Button>
-                    <Button size="sm" variant="outline" className="flex-1 h-8 text-[11px] font-bold border-red-500/30 text-red-500 hover:bg-red-500/10 hover:text-red-400">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="flex-1 h-8 text-[11px] font-bold border-red-500/30 text-red-500 hover:bg-red-500/10 hover:text-red-400"
+                    >
                       Delete
                     </Button>
                   </div>
@@ -443,11 +477,11 @@ function MessageBubble({ message, onConfirm }: { message: ChatMessage; onConfirm
                 className={cn(
                   "gap-1.5 py-0.5 px-2.5 text-[10px] font-semibold tracking-tight",
                   message.executionStatus === "completed" &&
-                  "border-emerald-500/50 bg-emerald-500/5 text-emerald-500",
+                    "border-emerald-500/50 bg-emerald-500/5 text-emerald-500",
                   message.executionStatus === "executing" &&
-                  "border-blue-500/50 bg-blue-500/5 text-blue-500",
+                    "border-blue-500/50 bg-blue-500/5 text-blue-500",
                   message.executionStatus === "failed" &&
-                  "border-red-500/50 bg-red-500/5 text-red-500",
+                    "border-red-500/50 bg-red-500/5 text-red-500",
                 )}
               >
                 {message.executionStatus === "completed" && (
@@ -480,11 +514,16 @@ export function ChatContent({ chatId }: ChatContentProps) {
   const { data: dummyMessages } = useChatMessages(chatId);
   const [messages, setMessages] = React.useState<ChatMessage[]>([]);
   const [input, setInput] = React.useState("");
-  const [streamingSteps, setStreamingSteps] = React.useState<{ id: string; message: string; status: string; completed: boolean }[]>([]);
+  const [streamingSteps, setStreamingSteps] = React.useState<
+    { id: string; message: string; status: string; completed: boolean }[]
+  >([]);
   const [streamingCollapsed, setStreamingCollapsed] = React.useState(true);
   const [isThinking, setIsThinking] = React.useState(false);
   const [attachedImage, setAttachedImage] = React.useState<string | null>(null);
   const scrollRef = React.useRef<HTMLDivElement>(null);
+  const messagesContainerRef = React.useRef<HTMLDivElement | null>(null);
+  const [showScrollToBottom, setShowScrollToBottom] = React.useState(false);
+   const isMobile = useIsMobile()
 
   React.useEffect(() => {
     const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
@@ -499,12 +538,23 @@ export function ChatContent({ chatId }: ChatContentProps) {
     socket.on("qleva_event", (event: any) => {
       if (event.type === "AGENT_STATUS_UPDATE") {
         const { status, message } = event.payload;
-        setStreamingSteps(prev => {
-          const prevSteps = prev.map(s => ({ ...s, completed: true }));
-          if (prevSteps.length > 0 && prevSteps[prevSteps.length - 1].message === message) {
+        setStreamingSteps((prev) => {
+          const prevSteps = prev.map((s) => ({ ...s, completed: true }));
+          if (
+            prevSteps.length > 0 &&
+            prevSteps[prevSteps.length - 1].message === message
+          ) {
             return prevSteps;
           }
-          return [...prevSteps, { id: Date.now().toString() + Math.random().toString(), message, status, completed: false }];
+          return [
+            ...prevSteps,
+            {
+              id: Date.now().toString() + Math.random().toString(),
+              message,
+              status,
+              completed: false,
+            },
+          ];
         });
       } else if (event.type === "AGENT_EXECUTION_DONE") {
         setIsThinking(false);
@@ -531,10 +581,28 @@ export function ChatContent({ chatId }: ChatContentProps) {
     }
   }, [messages, streamingSteps, isThinking]);
 
+  // Show a "scroll to bottom" button when user scrolls up away from latest messages.
+  React.useEffect(() => {
+    const el = messagesContainerRef.current;
+    if (!el) return;
+
+    const onScroll = () => {
+      const threshold = 120; // px
+      const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight <= threshold;
+      setShowScrollToBottom(!atBottom);
+    };
+
+    el.addEventListener("scroll", onScroll, { passive: true });
+    // initial check
+    onScroll();
+    return () => el.removeEventListener("scroll", onScroll);
+  }, [messages]);
+
   const handleSend = async (
     text: string = input,
     img: string | null = attachedImage,
   ) => {
+    if (isThinking) return;
     if (!text.trim() && !img) return;
 
     const userMessage: ChatMessage = {
@@ -548,12 +616,20 @@ export function ChatContent({ chatId }: ChatContentProps) {
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
     setAttachedImage(null);
-    setStreamingSteps([{ id: "init", message: "Qleva is formulating execution script...", status: "init", completed: false }]);
+    setStreamingSteps([
+      {
+        id: "init",
+        message: "Qleva is formulating execution script...",
+        status: "init",
+        completed: false,
+      },
+    ]);
     setIsThinking(true);
 
     try {
       const token = await getAccessToken();
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+      const baseUrl =
+        process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
       if (!chatId) {
         // Start a brand new chat session
@@ -578,7 +654,10 @@ export function ChatContent({ chatId }: ChatContentProps) {
         setStreamingSteps([]);
 
         // Cache the returned database messages and route to the new ID!
-        queryClient.setQueryData(["chat-messages", returnedChatId], returnedMessages);
+        queryClient.setQueryData(
+          ["chat-messages", returnedChatId],
+          returnedMessages,
+        );
 
         // Set local state to show response instantly before transition
         setMessages(returnedMessages);
@@ -586,14 +665,17 @@ export function ChatContent({ chatId }: ChatContentProps) {
         router.push(`/chat/${returnedChatId}`);
       } else {
         // Post message to existing chat session
-        const response = await fetch(`${baseUrl}/api/chats/${chatId}/messages`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
+        const response = await fetch(
+          `${baseUrl}/api/chats/${chatId}/messages`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ message: text }),
           },
-          body: JSON.stringify({ message: text }),
-        });
+        );
 
         if (!response.ok) {
           throw new Error("Failed to send message");
@@ -618,7 +700,8 @@ export function ChatContent({ chatId }: ChatContentProps) {
       const errorMessage: ChatMessage = {
         id: `err_${Date.now()}`,
         role: "assistant",
-        content: "⚠️ **System Communication Issue**\n\nI was unable to establish a secure link with the decentralized execution node. Please make sure the service is online and try again.",
+        content:
+          "⚠️ **System Communication Issue**\n\nI was unable to establish a secure link with the decentralized execution node. Please make sure the service is online and try again.",
         timestamp: new Date().toISOString(),
       };
       setMessages((prev) => [...prev, errorMessage]);
@@ -629,40 +712,64 @@ export function ChatContent({ chatId }: ChatContentProps) {
 
   return (
     <AppShell>
-      <div className="relative flex md:h-[calc(100svh-6rem)] w-full flex-col overflow-hidden bg-background">
+      <div className="relative -mt-2 md:-mt-4 flex md:h-[calc(100svh-4rem)] w-full flex-col overflow-hidden bg-background">
         <AnimatePresence>
           {!hasMessages && !chatId ? (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0, y: -20 }}
-              className="flex-1 flex flex-col items-center p-6 text-center z-0"
+              className="flex-1 flex flex-col items-center p-4 text-center z-0"
             >
               <motion.div className="mt-18 md:16">
-                <h1 className="text-3xl font-bold tracking-tight mb-2">How can I help you?</h1>
+                <h1 className="text-3xl font-bold tracking-tight mb-2">
+                  How can I help you?
+                </h1>
                 <p className="text-muted-foreground max-w-md mx-auto text-md">
-                  I'm your decentralized agent. I can help with swaps
-                  and complex automations.
+                  I'm your decentralized agent. I can help with swaps and
+                  complex automations.
                 </p>
               </motion.div>
             </motion.div>
           ) : (
-            <div className="flex-1 overflow-y-auto scroll-smooth no-scrollbar">
+            <div ref={messagesContainerRef} className="flex-1 overflow-y-auto scroll-smooth no-scrollbar">
               <div className="mx-auto max-w-4xl pb-30">
                 {messages.map((msg) => (
-                  <MessageBubble key={msg.id} message={msg} onConfirm={() => handleSend("Confirm")} />
+                  <MessageBubble
+                    key={msg.id}
+                    message={msg}
+                    onConfirm={() => handleSend("Confirm")}
+                  />
                 ))}
                 {isThinking && streamingSteps.length > 0 && (
-                  <div className="flex flex-col gap-2 w-full max-w-3xl mx-auto mt-4 px-0 md:px-0">
-                    <div className="flex items-center justify-between gap-3 max-w-[80%]">
+                  <div onClick={() => setStreamingCollapsed((s) => !s)} className="cursor-pointer flex flex-col gap-2 w-full max-w-3xl mx-auto mt-4 px-0 md:px-0">
+                    <div className="flex items-center gap-6 max-w-[80%]">
                       <div className="flex items-center gap-2 text-sm font-semibold text-foreground/90">
-                        <Brain className="size-4 text-primary" />
-                        <span>Thinking</span>
+                        <ShinyText
+                          text="Thinking..."
+                          speed={2}
+                          delay={0}
+                          color="#a1a1a1"
+                          shineColor="#ffffff"
+                          spread={120}
+                          direction="left"
+                          yoyo={false}
+                          pauseOnHover={false}
+                          disabled={false}
+                        />
                       </div>
                       <button
-                        aria-label={streamingCollapsed ? "Expand thinking steps" : "Collapse thinking steps"}
-                        title={streamingCollapsed ? "Show all steps" : "Show only last two"}
-                        onClick={() => setStreamingCollapsed((s) => !s)}
+                        aria-label={
+                          streamingCollapsed
+                            ? "Expand thinking steps"
+                            : "Collapse thinking steps"
+                        }
+                        title={
+                          streamingCollapsed
+                            ? "Show all steps"
+                            : "Show only last two"
+                        }
+                        
                         className="group flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
                       >
                         {streamingCollapsed ? (
@@ -674,17 +781,24 @@ export function ChatContent({ chatId }: ChatContentProps) {
                     </div>
 
                     <div className="flex flex-col gap-2 border-white/5 max-w-[80%]">
-                      {(streamingCollapsed ? streamingSteps.slice(-2) : streamingSteps).map((step) => (
+                      {(streamingCollapsed
+                        ? streamingSteps.slice(-2)
+                        : streamingSteps
+                      ).map((step) => (
                         <div key={step.id} className="flex items-start gap-3">
                           {step.completed ? (
                             <CheckCircle2 className="size-4 text-emerald-500 mt-0.5" />
                           ) : (
                             <Loader2 className="size-4 animate-spin text-primary mt-0.5" />
                           )}
-                          <span className={cn(
-                            "text-sm font-medium tracking-tight",
-                            step.completed ? "text-muted-foreground" : "text-foreground"
-                          )}>
+                          <span
+                            className={cn(
+                              "text-sm font-medium tracking-tight",
+                              step.completed
+                                ? "text-muted-foreground"
+                                : "text-foreground",
+                            )}
+                          >
                             {step.message}
                           </span>
                         </div>
@@ -698,22 +812,64 @@ export function ChatContent({ chatId }: ChatContentProps) {
           )}
         </AnimatePresence>
 
+        {/* Scroll-to-bottom button */}
+        {showScrollToBottom && (
+          <div className="fixed md:right-8 z-400" style={{ bottom: 120 }}>
+            <Button
+              variant="secondary"
+              size="icon-lg"
+              onClick={() => scrollRef.current?.scrollIntoView({ behavior: "smooth" })}
+              className="rounded-full bg-primary text-primary-foreground shadow-lg p-2"
+              aria-label="Scroll to latest"
+              title="Scroll to latest"
+            >
+              <ChevronDown className="size-5" />
+            </Button>
+          </div>
+        )}
+
         {/* Input Area */}
         <div
           className={cn(
-            "fixed md:absolute left-0 right-0 z-20 px-3",
-            hasMessages || chatId ? "bottom-2 md:bottom-0.5" : "top-100 md:top-80 -translate-y-1/2"
+            "fixed md:absolute left-0 right-0 z-20 px-3 bg-linear-to-b from-background/30 pt-4 rounded-3xl via-background to-background md:pb-2 pb-4",
+            hasMessages || isMobile || chatId 
+              ? "bottom-0 md:bottom-0"
+              : "top-100 md:top-80 -translate-y-1/2",
           )}
         >
-         <div className={`mx-auto w-full ${hasMessages || chatId ? "max-w-3xl" : "max-w-2xl"}`}>
-            <Card className="overflow-hidden border border-border/50 backdrop-blur-xl bg-card/80 rounded-2xl ">
+          <div
+            className={`mx-auto w-full ${hasMessages || chatId ? "max-w-3xl" : "max-w-2xl"}`}
+          >
+            {/* Suggestion chips above input when starting a new chat (placed right on top of input) */}
+            {!hasMessages && !chatId && isMobile && (
+              <motion.div
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.05 }}
+                className="mb-3 flex flex-wrap justify-center gap-2 max-w-2xl mx-auto px-2"
+              >
+                {suggestionChips.map((chip, i) => (
+                  <Button
+                    key={i}
+                    variant="outline"
+                    size="sm"
+                    className="h-10 md:h-9 rounded-xl bg-card/50 backdrop-blur-md border-border/50 hover:bg-primary/10 hover:text-primary hover:border-primary/50 transition-all gap-2"
+                    onClick={() => handleSend(chip.label)}
+                  >
+                    <span className="text-primary">{chip.icon}</span>
+                    <span className="text-[11px] font-semibold">{chip.label}</span>
+                  </Button>
+                ))}
+              </motion.div>
+            )}
+            <Card className="overflow-hidden border bg-sidebar text-sidebar-foreground border-sidebar-border rounded-3xl ">
               <CardContent className="p-0">
                 <div className="flex items-end gap-3 px-3">
                   <Textarea
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     placeholder="Ask Qleva anything..."
-                    className="max-h-[180px] -mt-1 overflow-y-auto focus-visible:ring-0 rounded-xs resize-none p-1 custom-scrollbar text-base"
+                    className="max-h-[180px] -mt-1 overflow-y-auto focus-visible:ring-0 rounded-0 resize-none p-1 custom-scrollbar "
                     style={{
                       backgroundColor: "transparent",
                       border: "0",
@@ -721,7 +877,7 @@ export function ChatContent({ chatId }: ChatContentProps) {
                     onKeyDown={(e) => {
                       if (e.key === "Enter" && !e.shiftKey) {
                         e.preventDefault();
-                        handleSend();
+                        if (!isThinking) handleSend();
                       }
                     }}
                   />
@@ -729,7 +885,7 @@ export function ChatContent({ chatId }: ChatContentProps) {
                     <Button
                       size="icon-lg"
                       onClick={() => handleSend()}
-                      disabled={!input.trim() && !attachedImage || isThinking}
+                      disabled={(!input.trim() && !attachedImage) || isThinking}
                     >
                       <ArrowUp className="size-5 font-bold" />
                     </Button>
@@ -738,13 +894,12 @@ export function ChatContent({ chatId }: ChatContentProps) {
               </CardContent>
             </Card>
 
-            {hasMessages || chatId ? (
+            {hasMessages || isMobile || chatId ? (
               <motion.p
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 className=""
-              >
-              </motion.p>
+              ></motion.p>
             ) : (
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
@@ -761,7 +916,9 @@ export function ChatContent({ chatId }: ChatContentProps) {
                     onClick={() => handleSend(chip.label)}
                   >
                     <span className="text-primary">{chip.icon}</span>
-                    <span className="text-[11px] font-semibold">{chip.label}</span>
+                    <span className="text-[11px] font-semibold">
+                      {chip.label}
+                    </span>
                   </Button>
                 ))}
               </motion.div>

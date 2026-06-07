@@ -261,7 +261,7 @@ function AutomationsContent() {
         variants={container}
         initial="hidden"
         animate="show"
-        className="space-y-6"
+        className="space-y-6 pb-12"
       >
         {/* Header */}
         <motion.div

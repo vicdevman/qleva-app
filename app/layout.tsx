@@ -27,7 +27,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "Qleva | Automate crypto actions using plain English",
+    default: "Qleva",
     template: "%s | Qleva"
   },
   description: "Qleva is a conversational crypto automation platform that lets you execute, manage, and automate onchain actions on Base, Ethereum, and beyond using simple natural language.",
@@ -39,7 +39,7 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_US",
     url: "https://qleva.cloud",
-    title: "Qleva | Automate crypto actions using plain English",
+    title: "Qleva",
     description: "Execute, manage, and automate onchain actions using simple natural language. The premier AI companion for web3.",
     siteName: "Qleva",
     images: [
@@ -53,7 +53,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Qleva | Automate crypto actions using plain English",
+    title: "Qleva",
     description: "Execute and automate onchain actions using natural language on Base & Ethereum.",
     creator: "@vicdevman",
     images: ["/og-image.png"]

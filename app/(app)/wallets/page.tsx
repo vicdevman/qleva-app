@@ -159,7 +159,7 @@ function WalletsContent() {
         variants={container}
         initial="hidden"
         animate="show"
-        className="space-y-6"
+        className="space-y-6 pb-12"
       >
         {/* Header */}
         <motion.div
@@ -313,12 +313,20 @@ function WalletsContent() {
                           <ArrowUpRight className="size-3.5" />
                           Withdraw
                         </Button>
-                        <Button
+                         <Button
                           variant="secondary"
                           size="lg"
-                          className="gap-1.5 p-5"
+                          className="gap-1.5 p-5 animate-transition"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCopy(wallet.address, wallet.id);
+                          }}
                         >
-                          <ExternalLink className="size-3.5" />
+                          {copiedId === wallet.id ? (
+                            <Check className="size-3.5 text-green-500" />
+                          ) : (
+                            <Copy className="size-3.5" />
+                          )}
                         </Button>
                       </>
                     )}
