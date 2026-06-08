@@ -55,12 +55,22 @@ export function FundWithdrawDialogs() {
   const [amount, setAmount] = React.useState("");
   const [step, setStep] = React.useState<"idle" | "signing" | "processing" | "success">("idle");
   const [activeTab, setActiveTab] = React.useState("internal");
+  const [recipientAddress, setRecipientAddress] = React.useState("");
+
+  const hasConnectedWallet = !!connectedWallet?.address;
+
+  React.useEffect(() => {
+    if (fundDialogOpen) {
+      setActiveTab(hasConnectedWallet ? "internal" : "external");
+    }
+  }, [fundDialogOpen, hasConnectedWallet]);
 
   // Reset state on open changes
   React.useEffect(() => {
     if (!fundDialogOpen && !withdrawDialogOpen) {
       setStep("idle");
       setAmount("");
+      setRecipientAddress("");
     }
   }, [fundDialogOpen, withdrawDialogOpen]);
 
@@ -93,10 +103,13 @@ export function FundWithdrawDialogs() {
     <div className="p-4 space-y-4">
       {step === "idle" && (
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 bg-muted/80 p-1 rounded-xl">
-            <TabsTrigger value="internal" className="rounded-lg">Transfer</TabsTrigger>
-            <TabsTrigger value="external" className="rounded-lg">External</TabsTrigger>
-          </TabsList>
+          {/* Show tabs list only if user has a connected wallet address */}
+          {hasConnectedWallet ? (
+            <TabsList className="grid w-full grid-cols-2 bg-muted/80 p-1 rounded-xl">
+              <TabsTrigger value="internal" className="rounded-lg">Transfer</TabsTrigger>
+              <TabsTrigger value="external" className="rounded-lg">External</TabsTrigger>
+            </TabsList>
+          ) : null}
           
           <TabsContent value="internal" className="space-y-4 pt-4">
             <div className="space-y-2">
@@ -150,7 +163,7 @@ export function FundWithdrawDialogs() {
                 </div>
                 <div>
                   <p className="text-[10px] text-muted-foreground">Connected Wallet</p>
-                  <p className="text-xs font-semibold">MetaMask</p>
+                  <p className="text-xs font-semibold">{connectedWallet?.name || "Connected Wallet"}</p>
                 </div>
               </div>
               <ArrowRight className="size-4 text-muted-foreground" />
@@ -259,31 +272,45 @@ export function FundWithdrawDialogs() {
             </div>
           </div>
 
-          <div className="rounded-xl border border-dashed border-border p-3.5 bg-muted/20 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="size-7 rounded-full bg-primary/10 flex items-center justify-center">
-                <Zap className="size-4 text-primary" />
+          {/* If user has no connected wallet, show a recipient address input field */}
+          {hasConnectedWallet ? (
+            <div className="rounded-xl border border-dashed border-border p-3.5 bg-muted/20 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="size-7 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Zap className="size-4 text-primary" />
+                </div>
+                <div>
+                  <p className="text-[10px] text-muted-foreground">Smart Wallet</p>
+                  <p className="text-xs font-semibold">Qleva Account</p>
+                </div>
               </div>
-              <div>
-                <p className="text-[10px] text-muted-foreground">Smart Wallet</p>
-                <p className="text-xs font-semibold">Qleva Account</p>
+              <ArrowRight className="size-4 text-muted-foreground" />
+              <div className="flex items-center gap-2">
+                <div className="size-7 rounded-full bg-blue-500/10 flex items-center justify-center">
+                  <Wallet className="size-4 text-blue-500" />
+                </div>
+                <div>
+                  <p className="text-[10px] text-muted-foreground">Connected Wallet</p>
+                  <p className="text-xs font-semibold">{connectedWallet?.name || "Connected Wallet"}</p>
+                </div>
               </div>
             </div>
-            <ArrowRight className="size-4 text-muted-foreground" />
-            <div className="flex items-center gap-2">
-              <div className="size-7 rounded-full bg-blue-500/10 flex items-center justify-center">
-                <Wallet className="size-4 text-blue-500" />
-              </div>
-              <div>
-                <p className="text-[10px] text-muted-foreground">Connected Wallet</p>
-                <p className="text-xs font-semibold">MetaMask</p>
-              </div>
+          ) : (
+            <div className="space-y-2">
+              <label className="text-xs text-muted-foreground font-medium">Recipient Address</label>
+              <Input
+                type="text"
+                placeholder="0x..."
+                value={recipientAddress}
+                onChange={(e) => setRecipientAddress(e.target.value)}
+                className="py-5 rounded-xl border-border bg-card font-mono text-sm animate-transition"
+              />
             </div>
-          </div>
+          )}
 
           <Button onClick={() => handleAction("withdraw")} className="w-full py-6 rounded-xl gap-2 font-semibold">
             <ArrowUpRight className="size-4" />
-            Withdraw to Connected Wallet
+            {hasConnectedWallet ? "Withdraw to Connected Wallet" : "Withdraw to Recipient"}
           </Button>
         </div>
       )}

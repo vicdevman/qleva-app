@@ -57,7 +57,9 @@ export function usePortfolio() {
       const error = (smartAddress && smartError) || (connectedAddress && connectedError);
 
       const smartValue = smartData && !smartError ? smartData.totalValue : (smartWallet?.balance ?? 1280.30);
-      const connectedValue = connectedData && !connectedError ? connectedData.totalValue : (connectedWallet?.balance ?? 2450.75);
+      const connectedValue = connectedAddress
+        ? (connectedData && !connectedError ? connectedData.totalValue : (connectedWallet?.balance ?? 2450.75))
+        : 0;
       
       const totalValue = smartValue + connectedValue;
 
@@ -73,7 +75,9 @@ export function usePortfolio() {
         });
       } else {
         chainMap.set("Base", smartValue);
-        chainMap.set("Ethereum", connectedValue);
+        if (connectedAddress) {
+          chainMap.set("Ethereum", connectedValue);
+        }
       }
 
       const chainDistribution = Array.from(chainMap.entries()).map(([chain, value]) => ({
@@ -106,8 +110,9 @@ export function usePortfolio() {
       let topAssets = Array.from(assetMap.values()).sort((a, b) => b.value - a.value);
 
       if (topAssets.length === 0) {
-        topAssets = [
-          {
+        topAssets = [];
+        if (connectedAddress && connectedValue > 0) {
+          topAssets.push({
             symbol: "ETH",
             name: "Ethereum",
             balance: Number((connectedValue / 2600).toFixed(3)),
@@ -115,17 +120,17 @@ export function usePortfolio() {
             allocation: totalValue > 0 ? Number(((connectedValue / totalValue) * 100).toFixed(1)) : 0,
             change24h: 2.4,
             icon: "⟠",
-          },
-          {
-            symbol: "USDC",
-            name: "USD Coin",
-            balance: smartValue,
-            value: smartValue,
-            allocation: totalValue > 0 ? Number(((smartValue / totalValue) * 100).toFixed(1)) : 0,
-            change24h: 0.0,
-            icon: "$",
-          },
-        ];
+          });
+        }
+        topAssets.push({
+          symbol: "USDC",
+          name: "USD Coin",
+          balance: smartValue,
+          value: smartValue,
+          allocation: totalValue > 0 ? Number(((smartValue / totalValue) * 100).toFixed(1)) : 0,
+          change24h: 0.0,
+          icon: "$",
+        });
       }
 
       return {

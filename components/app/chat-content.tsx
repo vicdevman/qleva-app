@@ -173,7 +173,7 @@ function MessageBubble({
                       </h3>
                     ),
                     p: ({ children }) => (
-                      <p className="text-[16px] leading-relaxed text-foreground/90 mb-3 last:mb-0">
+                      <p className="text-[16px] leading-relaxed text-foreground/90 mt-3 mb-3 last:mb-0">
                         {children}
                       </p>
                     ),
@@ -831,7 +831,7 @@ export function ChatContent({ chatId }: ChatContentProps) {
         {/* Input Area */}
         <div
           className={cn(
-            "fixed md:absolute left-0 right-0 z-20 px-3 bg-linear-to-b from-background/30 pt-4 rounded-3xl via-background to-background md:pb-2 pb-4",
+            "fixed md:absolute left-0 right-0 z-20 px-3 bg-linear-to-b from-background/10 rounded-3xl via-background to-background md:pb-2 pb-4",
             hasMessages || isMobile || chatId 
               ? "bottom-0 md:bottom-0"
               : "top-100 md:top-80 -translate-y-1/2",
@@ -846,7 +846,7 @@ export function ChatContent({ chatId }: ChatContentProps) {
                 initial={{ opacity: 0, y: 6 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.05 }}
-                className="mb-3 flex flex-wrap justify-center gap-2 max-w-2xl mx-auto px-2"
+                className="mb-3 flex justify-start overflow-scroll gap-2 max-w-2xl mx-auto px-2"
               >
                 {suggestionChips.map((chip, i) => (
                   <Button

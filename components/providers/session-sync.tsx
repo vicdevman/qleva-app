@@ -12,6 +12,7 @@ interface UserProfileData {
   walletAddress: string | null;
   smartWalletAddress: string | null;
   smartWalletType: string | null;
+  walletType?: string | null;
   oauthProvider: string | null;
   name: string | null;
   username: string | null;
@@ -35,8 +36,25 @@ export function extractUserProfile(user: any): Omit<UserProfileData, "lastLoginA
     };
   }
 
-  // Get active or first wallet address
-  const walletAddress = user.wallet?.address || user.wallets?.[0]?.address || null;
+  // Extract active address using the exact same logic as in app-sidebar.tsx
+  const activeAddress = user.wallet?.address || (user as any)?.wallets?.[0]?.address || "";
+
+  // Identify if user logged in via a social/oauth account
+  const googleAcc = user.google as any;
+  const twitterAcc = user.twitter as any;
+  const githubAcc = user.github as any;
+  const emailAcc = user.email as any;
+
+  const isSocialUser = !!(
+    googleAcc?.name ||
+    twitterAcc?.name ||
+    githubAcc?.name ||
+    emailAcc?.address
+  );
+
+  // If it is a social user, hide the connected wallet (represented by EOA wallet)
+  // Otherwise, use the activeAddress
+  const walletAddress = isSocialUser ? null : (activeAddress || null);
 
   // Get email
   const email = user.email?.address || null;
@@ -100,6 +118,9 @@ export function extractUserProfile(user: any): Omit<UserProfileData, "lastLoginA
     walletAddress,
     smartWalletAddress: user.smartWallet?.address || null,
     smartWalletType: user.smartWallet?.type || null,
+    walletType: isSocialUser 
+      ? null 
+      : (user.wallet?.walletClientType || (user as any)?.wallets?.[0]?.walletClientType || null),
     oauthProvider,
     name: displayName,
     username: username || (email ? email.split("@")[0] : null),
@@ -128,10 +149,8 @@ export function SessionSync() {
         avatarUrl: profile.avatarUrl || "",
       });
 
-      // 2. Update Frontend Zustand Wallet Store
-      if (profile.walletAddress) {
-        syncWallet(profile.walletAddress, profile.smartWalletAddress);
-      }
+      // 2. Update Frontend Zustand Wallet Store (always sync to allow clearing connected wallet if empty)
+      syncWallet(profile.walletAddress || "", profile.smartWalletAddress, (profile as any).walletType);
 
       // Avoid double syncing for the exact same session state
       const currentSyncKey = `${profile.did}-${profile.walletAddress || "no-wallet"}`;

@@ -139,7 +139,8 @@ export function MobileProfileDrawer({
 
             <div className="space-y-3">
               {/* Connected Wallet */}
-              {connectedWallet && (
+              {/* Hide connected wallet if its address is empty (e.g. social login) */}
+              {connectedWallet && connectedWallet.address && (
                 <div className="flex flex-col gap-2 p-4 rounded-xl bg-card border border-border">
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-semibold text-foreground flex items-center gap-2">

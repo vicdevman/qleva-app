@@ -105,6 +105,8 @@ function PortfolioContent() {
   const { setFundDialogOpen } = useUIStore();
   const smartWallet = wallets.find((w) => w.type === "smart");
   const hasSmartWallet = !!smartWallet?.address;
+  const connectedWallet = wallets.find((w) => w.type === "connected");
+  const hasConnectedWallet = !!connectedWallet?.address;
 
   return (
     <AppShell>
@@ -135,7 +137,7 @@ function PortfolioContent() {
         </motion.div>
 
         {/* Summary Cards */}
-        <motion.div variants={item} className={cn("grid gap-4", hasSmartWallet ? "sm:grid-cols-3" : "sm:grid-cols-2")}>
+        <motion.div variants={item} className={cn("grid gap-4", (hasSmartWallet && hasConnectedWallet) ? "sm:grid-cols-3" : "sm:grid-cols-2")}>
           <Card className="bg-linear-to-br from-primary/5 to-transparent">
             <CardContent className="flex flex-col gap-2">
               <p className="text-xs text-muted-foreground">Total Value</p>
@@ -186,25 +188,27 @@ function PortfolioContent() {
               </CardContent>
             </Card>
           )}
-          <Card>
-            <CardContent className="flex flex-col gap-1">
-              <p className="text-xs text-muted-foreground">Connected Wallet</p>
-              {isLoading ? (
-                <Skeleton className="mt-1 h-8 w-28" />
-              ) : (
-                <div className="flex items-center gap-2 mt-1">
-                  <p className="font-heading text-3xl font-semibold">
-                    {formatCurrency(portfolio?.connectedWalletValue ?? 2450.75)}
-                  </p>
-                  {portfolio?.error && (
-                    <span title="Failed to fetch live balance.">
-                      <AlertTriangle className="size-5 text-yellow-500" />
-                    </span>
-                  )}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          {hasConnectedWallet && (
+            <Card>
+              <CardContent className="flex flex-col gap-1">
+                <p className="text-xs text-muted-foreground">{connectedWallet?.name || "Connected Wallet"}</p>
+                {isLoading ? (
+                  <Skeleton className="mt-1 h-8 w-28" />
+                ) : (
+                  <div className="flex items-center gap-2 mt-1">
+                    <p className="font-heading text-3xl font-semibold">
+                      {formatCurrency(portfolio?.connectedWalletValue ?? 2450.75)}
+                    </p>
+                    {portfolio?.error && (
+                      <span title="Failed to fetch live balance.">
+                        <AlertTriangle className="size-5 text-yellow-500" />
+                      </span>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
         </motion.div>
 
         {/* Charts */}

@@ -53,6 +53,17 @@ const item = {
 
 function WalletRelationshipVisualizer() {
   const { data: portfolio } = usePortfolio();
+  const { wallets } = useWalletStore();
+  const connectedWallet = wallets.find((w) => w.type === "connected");
+  const smartWallet = wallets.find((w) => w.type === "smart");
+
+  const connectedAddrAbbr = connectedWallet?.address
+    ? `${connectedWallet.address.slice(0, 6)}...${connectedWallet.address.slice(-4)}`
+    : "Not Linked";
+  const smartAddrAbbr = smartWallet?.address
+    ? `${smartWallet.address.slice(0, 6)}...${smartWallet.address.slice(-4)}`
+    : "Not Created";
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
@@ -66,9 +77,9 @@ function WalletRelationshipVisualizer() {
           <Wallet className="size-5 text-blue-500" />
         </div>
         <div>
-          <p className="text-sm font-medium">Personal Wallet</p>
+          <p className="text-sm font-medium">{connectedWallet?.name || "Personal Wallet"}</p>
           <p className="text-xs text-muted-foreground">
-            MetaMask · 0x7a2B...4f9E
+            {connectedWallet?.name || "Connected"} · {connectedAddrAbbr}
           </p>
         </div>
         <div className="ml-4 text-right">
@@ -97,7 +108,7 @@ function WalletRelationshipVisualizer() {
         <div>
           <p className="text-sm font-medium">Smart Wallet</p>
           <p className="text-xs text-muted-foreground">
-            Smart Contract · 0x3e8C...1a2B
+            Smart Contract · {smartAddrAbbr}
           </p>
         </div>
         <div className="ml-4 text-right">
@@ -151,7 +162,8 @@ function WalletsContent() {
 
   const smartWallet = wallets.find((w) => w.type === "smart");
   const hasSmartWallet = !!smartWallet?.address;
-  const displayWallets = wallets.filter(w => w.type === "connected" || w.address !== "");
+  // const displayWallets = wallets.filter(w => w.type === "connected" || w.address !== "");
+  const displayWallets = wallets.filter(w => w.address !== "");
 
   return (
     <AppShell>
@@ -177,7 +189,8 @@ function WalletsContent() {
         </motion.div>
 
         {/* Wallet Relationship Visualizer */}
-        {hasSmartWallet && (
+        {/* Hide visualizer if no external wallet address is connected */}
+        {hasSmartWallet && wallets.find((w) => w.type === "connected")?.address && (
           <motion.div variants={item}>
             <Card className="overflow-hidden border border-border/50 bg-card/50">
               <div

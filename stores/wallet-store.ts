@@ -15,7 +15,7 @@ interface WalletState {
   selectedWalletId: string | null;
   selectWallet: (id: string) => void;
   setWallets: (wallets: WalletInfo[]) => void;
-  syncWallet: (address: string, smartAddress?: string | null) => void;
+  syncWallet: (address: string, smartAddress?: string | null, connectorType?: string | null) => void;
 }
 
 export const useWalletStore = create<WalletState>((set) => ({
@@ -42,11 +42,15 @@ export const useWalletStore = create<WalletState>((set) => ({
   selectedWalletId: "w_002",
   selectWallet: (id) => set({ selectedWalletId: id }),
   setWallets: (wallets) => set({ wallets }),
-  syncWallet: (address, smartAddress) =>
+  syncWallet: (address, smartAddress, connectorType) =>
     set((state) => {
       const updatedWallets = state.wallets.map((w) => {
         if (w.type === "connected") {
-          return { ...w, address };
+          const defaultName = "Connected Wallet";
+          const formattedName = connectorType
+            ? connectorType.charAt(0).toUpperCase() + connectorType.slice(1).replace("_", " ")
+            : defaultName;
+          return { ...w, address, name: formattedName };
         }
         if (w.type === "smart") {
           const newSmart = smartAddress || "";
