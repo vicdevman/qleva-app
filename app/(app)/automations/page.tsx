@@ -2,38 +2,23 @@
 
 import * as React from "react";
 import { motion } from "framer-motion";
+import { useRouter } from "next/navigation";
 import {
-  Plus,
   Play,
   Pause,
-  Copy,
   Trash2,
-  MoreHorizontal,
   Clock,
-  TrendingUp,
   BarChart3,
-  Fuel,
-  CheckCircle2,
-  XCircle,
-  Calendar,
   Repeat,
   Workflow,
-  MoreVertical,
+  Calendar,
 } from "lucide-react";
 import { AppShell } from "@/components/app/app-shell";
-import { SectionCard } from "@/components/shared/section-card";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { useAutomations } from "@/lib/query-hooks";
+import { useAutomations, useToggleAutomationStatus, useDeleteAutomation } from "@/lib/query-hooks";
 import { cn } from "@/lib/utils";
 
 function formatCurrency(value: number) {
@@ -43,25 +28,12 @@ function formatCurrency(value: number) {
   }).format(value);
 }
 
-function timeAgo(dateStr: string | null) {
-  if (!dateStr) return "Paused";
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 60) return `${mins}m ago`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  return `${Math.floor(hours / 24)}d ago`;
-}
-
-function nextRun(dateStr: string | null) {
-  if (!dateStr) return "Not scheduled";
-  const date = new Date(dateStr);
-  return date.toLocaleDateString("en-US", {
-    weekday: "short",
+function formatDate(dateStr?: string | Date | null) {
+  if (!dateStr) return "Never";
+  return new Date(dateStr).toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
+    year: "numeric",
   });
 }
 
@@ -73,13 +45,8 @@ const triggerConfig = {
   },
   price: {
     label: "Price Trigger",
-    icon: <TrendingUp className="size-3" />,
+    icon: <Play className="size-3" />, // fallback or change if needed
     color: "bg-green-500/10 text-green-500",
-  },
-  portfolio: {
-    label: "Portfolio",
-    icon: <BarChart3 className="size-3" />,
-    color: "bg-purple-500/10 text-purple-500",
   },
 };
 
@@ -97,148 +64,191 @@ const item = {
   },
 };
 
+const TokenBadge = ({ tokenInfo }: { tokenInfo: any }) => {
+  if (!tokenInfo) return null;
+  const symbol = tokenInfo.symbol || "USDC";
+  const address = tokenInfo.contractAddress || "";
+  const logoUrl = tokenInfo.logoUrl || (symbol === "ETH" 
+    ? "https://dd.dexscreener.com/ds-data/tokens/base/0x4200000000000000000000000000000000000006.png" 
+    : "https://dd.dexscreener.com/ds-data/tokens/base/0x833589fcd6edb6e08f4c7c32d4f71b54bda02913.png");
+
+  const url = address ? `https://dexscreener.com/base/${address}` : `https://dexscreener.com/search?q=${symbol}`;
+
+  return (
+    <span className="inline-flex items-center gap-1.5 bg-muted/50 border border-border px-2 py-0.5 rounded-md">
+      {logoUrl && (
+        <img
+          src={logoUrl}
+          alt=""
+          className="size-3.5 rounded-full object-cover border border-white/5"
+        />
+      )}
+      <a
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="underline decoration-dotted underline-offset-4 hover:text-primary transition-colors font-medium text-[11px] text-foreground cursor-pointer"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {symbol}
+      </a>
+    </span>
+  );
+};
+
 function AutomationCard({ automation }: { automation: any }) {
-  const trigger =
-    triggerConfig[automation.trigger as keyof typeof triggerConfig];
+  const router = useRouter();
+  const toggleMutation = useToggleAutomationStatus();
+  const deleteMutation = useDeleteAutomation();
+
+  const isSchedule = automation.trigger?.type === "schedule";
   const isActive = automation.status === "active";
+
+  const config = automation.trigger?.config || {};
+  const fromTokenInfo = config.fromTokenInfo || { symbol: config.fromToken || "USDC" };
+  const toTokenInfo = config.toTokenInfo || { symbol: config.toToken || "ETH" };
+  const amountUsd = config.amountUsd || 10;
+  const frequency = config.frequency || "daily";
+
+  const creationDate = new Date(automation.createdAt || Date.now());
+  const expiresDate = new Date(automation.execution?.expiresAt || (Date.now() + 30 * 24 * 3600 * 1000));
+  const nextExecutionDate = automation.execution?.nextExecutionAt ? new Date(automation.execution.nextExecutionAt) : null;
+
+  const currentRuns = automation.execution?.currentRuns || 0;
+  const volume = currentRuns * amountUsd;
+
+  const handleToggle = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const nextStatus = isActive ? "paused" : "active";
+    toggleMutation.mutate({ id: automation.id, status: nextStatus });
+  };
+
+  const handleDelete = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (confirm("Are you sure you want to delete this automation?")) {
+      deleteMutation.mutate(automation.id);
+    }
+  };
 
   return (
     <motion.div variants={item}>
       <Card
         className={cn(
-          "group/card overflow-hidden transition-all hover:shadow-md",
-          isActive
-            ? "border-border hover:border-primary/30"
-            : "border-dashed border-muted-foreground/20 opacity-60 hover:opacity-100",
+          "bg-card/40 border-border backdrop-blur-md overflow-hidden transition-all hover:shadow-md cursor-pointer",
+          !isActive && "opacity-75 hover:opacity-100 border-dashed"
         )}
+        onClick={() => router.push(`/automations/${automation.id}`)}
       >
-        <CardContent className="">
-          {/* ── Row 1: Identity ── */}
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0 flex-1">
-              <span className="flex gap-3 items-center">
-                <h3 className="text-sm font-semibold leading-tight">
-                  {automation.name}
-                </h3>{" "}
-                <Badge
-                  variant="outline"
-                  className={cn(
-                    "h-5 border px-2 text-[10px] font-medium",
-                    trigger.color,
-                  )}
-                >
-                  {trigger.label}
-                </Badge>
+        <CardContent className="space-y-4">
+          {/* Header */}
+          <div className="flex justify-between items-center pb-2 border-0 border-border/30">
+            <h3 className="font-heading text-lg font-bold tracking-tight text-foreground/90">
+              {isSchedule ? "Recurring Swap Strategy" : "Price Condition Trigger"}
+            </h3>
+            <Badge
+              variant={isActive ? "default" : "secondary"}
+              className={cn(
+                "text-[10px] px-2 py-0.5 capitalize font-medium",
+                isActive ? "bg-green-500/10 text-green-500 border border-green-500/20" : "bg-muted text-muted-foreground border"
+              )}
+            >
+              {automation.status}
+            </Badge>
+          </div>
+
+          {/* Details list */}
+          <div className="space-y-2.5">
+            <div className="flex justify-between items-center text-md border-b border-border/30 pb-2.5">
+              <span className="text-muted-foreground">Token Path</span>
+              <span className="flex items-center gap-1.5">
+                <TokenBadge tokenInfo={fromTokenInfo} />
+                <span className="text-muted-foreground text-[10px] font-bold">➔</span>
+                <TokenBadge tokenInfo={toTokenInfo} />
               </span>
-              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                {automation.description}
-              </p>
             </div>
 
-            <div className="grid grid-cols-2 items-center gap-2">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon-xs" className="">
-                    <MoreVertical className="size-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-40">
-                  <DropdownMenuItem className="gap-2 text-xs">
-                    {isActive ? (
-                      <Pause className="size-3.5" />
-                    ) : (
-                      <Play className="size-3.5" />
-                    )}
-                    {isActive ? "Pause" : "Resume"}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem className="gap-2 text-xs">
-                    <Copy className="size-3.5" />
-                    Duplicate
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem className="gap-2 text-xs text-destructive focus:bg-destructive/10 focus:text-destructive">
-                    <Trash2 className="size-3.5" />
-                    Delete
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+            <div className="flex justify-between items-center text-md border-b border-border/30 pb-2.5">
+              <span className="text-muted-foreground">Execution Trade Size</span>
+              <span className="font-semibold text-emerald-500">{formatCurrency(amountUsd)}</span>
             </div>
-          </div>
 
-          {/* ── Row 2: What it does ── */}
-          <div className="mt-4 flex flex-wrap items-center gap-2">
-            <span className="text-xs text-muted-foreground">
-              {automation.action} · {automation.amount} · {automation.chain}
-            </span>
-          </div>
-
-          {/* ── Row 3: Stats — text-first, no icons ── */}
-          <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-4">
-            <div>
-              <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground/60">
-                Success
-              </p>
-              <p className="mt-0.5 text-sm font-semibold">
-                {automation.successRate}%
-              </p>
-            </div>
-            <div>
-              <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground/60">
-                Runs
-              </p>
-              <p className="mt-0.5 text-sm font-semibold">
-                {automation.totalExecutions}
-              </p>
-            </div>
-            <div>
-              <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground/60">
-                Gas
-              </p>
-              <p className="mt-0.5 text-sm font-semibold">
-                {automation.gasUsed} ETH
-              </p>
-            </div>
-            <div>
-              <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground/60">
-                Volume
-              </p>
-              <p className="mt-0.5 text-sm font-semibold">
-                {automation.totalVolume}
-              </p>
-            </div>
-          </div>
-
-          {/* ── Row 4: Schedule ── */}
-          <div className="mt-4 flex items-center justify-between border-t pt-3">
-            <div className="flex flex-col gap-1">
-              <div className="flex items-center gap-2">
-                {isActive ? (
-                  <span className="relative flex size-2">
-                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
-                    <span className="relative inline-flex size-2 rounded-full bg-green-500" />
-                  </span>
-                ) : (
-                  <span className="size-2 rounded-full bg-muted-foreground/30" />
-                )}
-                <span className="text-xs font-medium text-muted-foreground">
-                  {isActive ? "Active" : "Paused"}
+            {isSchedule ? (
+              <div className="flex justify-between items-center text-md border-b border-border/30 pb-2.5">
+                <span className="text-muted-foreground">Frequency Interval</span>
+                <span className="font-medium capitalize">{frequency}</span>
+              </div>
+            ) : (
+              <div className="flex justify-between items-center text-md border-b border-border/30 pb-2.5">
+                <span className="text-muted-foreground">Trigger Condition</span>
+                <span className="font-medium text-right capitalize">
+                  {config.conditionType?.split("_").join(" ") || "Drops below"} ${config.targetValue}
                 </span>
-              </div>{" "}
-              <span className="text-xs text-muted-foreground">
-                {automation.frequency}
+              </div>
+            )}
+
+            <div className="flex justify-between items-center text-md border-b border-border/30 pb-2.5">
+              <span className="text-muted-foreground">Starts</span>
+              <span className="font-medium">{formatDate(creationDate)}</span>
+            </div>
+
+            <div className="flex justify-between items-center text-md border-b border-border/30 pb-2.5">
+              <span className="text-muted-foreground">Ends</span>
+              <span className="font-medium flex items-center gap-1">
+                <Calendar className="size-3 text-muted-foreground" />
+                {formatDate(expiresDate)}
               </span>
             </div>
 
-            <div className="text-right">
-              <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground/50">
-                {isActive ? "Next run" : "Last run"}
-              </p>
-              <p className="mt-0.5 text-xs font-medium">
-                {isActive
-                  ? nextRun(automation.nextExecution)
-                  : timeAgo(automation.lastExecuted)}
-              </p>
+            <div className="flex justify-between items-center text-md border-b border-border/30 pb-2.5">
+              <span className="text-muted-foreground">Next Execution</span>
+              <span className="font-medium flex items-center gap-1">
+                <Clock className="size-3 text-primary" />
+                {isActive && nextExecutionDate ? formatDate(nextExecutionDate) : "Paused"}
+              </span>
             </div>
+
+            <div className="flex justify-between items-center text-md border-b border-border/30 pb-2.5">
+              <span className="text-muted-foreground">Runs</span>
+              <span className="font-medium">{currentRuns}</span>
+            </div>
+
+            <div className="flex justify-between items-center text-md pb-0.5">
+              <span className="text-muted-foreground">Volume</span>
+              <span className="font-semibold text-emerald-500">{formatCurrency(volume)}</span>
+            </div>
+          </div>
+
+          {/* Action Row */}
+          <div className="flex gap-2 pt-3 border-t border-border/30">
+            <Button
+              size="sm"
+              variant="outline"
+              className="flex-1 h-9 text-xs font-bold border-border hover:bg-white/5"
+              onClick={handleToggle}
+              disabled={toggleMutation.isPending}
+            >
+              {isActive ? <Pause className="size-3.5 mr-1.5" /> : <Play className="size-3.5 mr-1.5" />}
+              {isActive ? "Pause" : "Resume"}
+            </Button>
+            {/* <Button
+              size="sm"
+              variant="outline"
+              className="h-9 px-3 text-xs font-bold border-red-500/20 text-red-500 hover:bg-red-500/10 hover:text-red-400"
+              onClick={handleDelete}
+              disabled={deleteMutation.isPending}
+            >
+              <Trash2 className="size-3.5" />
+            </Button> */}
+            <Button
+              size="sm"
+              className="flex-1 h-9 text-xs font-bold bg-primary text-primary-foreground"
+              onClick={(e) => {
+                e.stopPropagation();
+                router.push(`/automations/${automation.id}`);
+              }}
+            >
+              View Executions
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -248,12 +258,19 @@ function AutomationCard({ automation }: { automation: any }) {
 
 function AutomationsContent() {
   const { data: automations, isLoading } = useAutomations();
+  
   const activeCount =
     automations?.filter((a: any) => a.status === "active").length ?? 0;
+
   const totalExecutions =
-    automations?.reduce((sum: number, a: any) => sum + a.totalExecutions, 0) ?? 0;
+    automations?.reduce((sum: number, a: any) => sum + Number(a.execution?.currentRuns || 0), 0) ?? 0;
+
   const totalVolume =
-    automations?.reduce((sum: number, a: any) => sum + a.totalVolume, 0) ?? 0;
+    automations?.reduce((sum: number, a: any) => {
+      const runs = Number(a.execution?.currentRuns || 0);
+      const amount = Number(a.trigger?.config?.amountUsd || a.risk?.maxTradeUsd || 0);
+      return sum + (runs * amount);
+    }, 0) ?? 0;
 
   return (
     <AppShell>
@@ -276,15 +293,11 @@ function AutomationsContent() {
               Manage all your active workflows and scheduled actions
             </p>
           </div>
-          <Button size="lg" className="gap-2">
-            <Plus className="size-4" />
-            New Automation
-          </Button>
         </motion.div>
 
         {/* Stats Row */}
         <motion.div variants={item} className="grid gap-4 grid-cols-2 sm:grid-cols-4">
-          <Card>
+          <Card className="bg-card/40 border-border backdrop-blur-md overflow-hidden">
             <CardContent className="flex items-center gap-3">
               <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10">
                 <Workflow className="size-4 text-primary" />
@@ -297,7 +310,7 @@ function AutomationsContent() {
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="bg-card/40 border-border backdrop-blur-md overflow-hidden">
             <CardContent className="flex items-center gap-3">
               <div className="flex size-9 items-center justify-center rounded-lg bg-green-500/10">
                 <Play className="size-4 text-green-500" />
@@ -310,7 +323,7 @@ function AutomationsContent() {
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="bg-card/40 border-border backdrop-blur-md overflow-hidden">
             <CardContent className="flex items-center gap-3">
               <div className="flex size-9 items-center justify-center rounded-lg bg-blue-500/10">
                 <Repeat className="size-4 text-blue-500" />
@@ -323,7 +336,7 @@ function AutomationsContent() {
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="bg-card/40 border-border backdrop-blur-md overflow-hidden">
             <CardContent className="flex items-center gap-3">
               <div className="flex size-9 items-center justify-center rounded-lg bg-purple-500/10">
                 <BarChart3 className="size-4 text-purple-500" />
@@ -333,7 +346,7 @@ function AutomationsContent() {
                 <p className="font-heading text-lg font-semibold">
                   {totalVolume >= 1000
                     ? `$${(totalVolume / 1000).toFixed(1)}k`
-                    : `$${totalVolume}`}
+                    : `$${totalVolume.toFixed(2)}`}
                 </p>
               </div>
             </CardContent>
@@ -341,31 +354,34 @@ function AutomationsContent() {
         </motion.div>
 
         {/* Automation Cards */}
-        {/* <div className="space-y-3">
+        <div className="space-y-3">
           {isLoading ? (
-            [1, 2, 3, 4].map((i) => (
-              <Skeleton key={i} className="h-48 w-full rounded-xl" />
-            ))
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {[1, 2, 3, 4].map((i) => (
+                <Skeleton key={i} className="h-56 w-full rounded-xl" />
+              ))}
+            </div>
+          ) : !automations || automations.length === 0 ? (
+            <div className="text-center py-12 border border-dashed rounded-xl border-muted-foreground/20 text-muted-foreground p-2">
+              No active automation strategies. Create one from the chat view!
+            </div>
           ) : (
             <motion.div
               variants={container}
               initial="hidden"
               animate="show"
-              className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:grid-cols-2"
+              className="grid grid-cols-1 md:grid-cols-2 gap-5"
             >
-              {automations?.map((automation, i) => (
+              {automations.map((automation: any) => (
                 <AutomationCard key={automation.id} automation={automation} />
               ))}
             </motion.div>
           )}
-        </div> */}
-
-        <div className="text-center mt-10">Under contruction</div>
+        </div>
       </motion.div>
     </AppShell>
   );
 }
-
 export default function AutomationsPage() {
   return <AutomationsContent />;
 }

@@ -35,11 +35,55 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { useChatMessages, useSendMessage } from "@/lib/query-hooks";
+import { useChatMessages, useSendMessage, useToggleAutomationStatus, useDeleteAutomation } from "@/lib/query-hooks";
 import { useQueryClient } from "@tanstack/react-query";
-import { usePrivy } from "@privy-io/react-auth";
+import { usePrivy, useWallets } from "@privy-io/react-auth";
+import { parseUnits } from "viem";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
+
+const TokenLink = ({ tokenInfo }: { tokenInfo: any }) => {
+  const symbol = tokenInfo?.symbol || "USDC";
+  const address = tokenInfo?.contractAddress || tokenInfo?.address || "";
+  const chainId = "base";
+  const url = address ? `https://dexscreener.com/${chainId}/${address}` : `https://dexscreener.com/search?q=${symbol}`;
+  
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="underline decoration-dotted underline-offset-4 hover:text-primary transition-colors cursor-pointer inline-block"
+    >
+      {symbol}
+    </a>
+  );
+};
+
+const TokenBadge = ({ tokenInfo }: { tokenInfo: any }) => {
+  if (!tokenInfo) return null;
+  const logoUrl = tokenInfo.logoUrl;
+  return (
+    <span className="inline-flex items-center gap-1.5 align-middle">
+       <TokenLink tokenInfo={tokenInfo} />
+      {logoUrl && (
+        <img
+          src={logoUrl}
+          alt=""
+          className="size-5 p-0.5 object-cover border border-white/10"
+        />
+      )}
+     
+    </span>
+  );
+};
+
+function formatCurrency(value: number) {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+  }).format(value);
+}
 
 interface ChatMessage {
   id: string;
@@ -49,6 +93,8 @@ interface ChatMessage {
   intentPreview?: {
     id: string;
     status: "preview" | "active" | "completed";
+    createdAt?: string;
+    execution?: any;
     trigger: {
       type: "schedule" | "price_condition";
       config: any;
@@ -87,12 +133,16 @@ function MessageBubble({
   onConfirm,
 }: {
   message: ChatMessage;
-  onConfirm?: () => void;
+  onConfirm?: (intentPreview: any) => void;
 }) {
+  const router = useRouter();
   const isUser = message.role === "user";
 
   console.log(message.intentPreview);
   const [copied, setCopied] = React.useState(false);
+
+  const toggleMutation = useToggleAutomationStatus();
+  const deleteMutation = useDeleteAutomation();
 
   const handleCopy = async () => {
     try {
@@ -308,167 +358,313 @@ function MessageBubble({
             </div>
           </div>
 
-          {message.intentPreview && (
-            <div className="mt-10 w-full max-w-[calc(100vw)] sm:max-w-md px-0.5">
-              <Card className="overflow-hidden bg-background border-border shadow-sm backdrop-blur-md">
-                <CardContent className="">
-                  <div className="flex items-center gap-2 font-semibold mb-4 text-lg">
-                    Summary
-                  </div>
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center text-md">
-                      <span className="text-muted-foreground">Action</span>
-                      <span className="font-medium text-right max-w-[190px]">
-                        {message.intentPreview.preview.humanReadable}
-                      </span>
-                    </div>
-                    {message.intentPreview.trigger && (
-                      <>
-                        <div className="flex justify-between items-center text-md">
-                          <span className="text-muted-foreground">
-                            Trigger ({message.intentPreview.trigger.type})
-                          </span>
-                          <span className="font-medium text-right max-w-[180px]">
-                            {message.intentPreview.trigger.config.frequency || (
-                              <span>
-                                {message.intentPreview.trigger.config.conditionType
-                                  .split("_")
-                                  .join(" ")}{" "}
-                                &nbsp; $
-                                {
-                                  message.intentPreview.trigger.config
-                                    .targetValue
-                                }
-                              </span>
-                            )}
-                          </span>
-                        </div>
+          {message.intentPreview && (() => {
+            const config = message.intentPreview.trigger.config;
+            const isSchedule = message.intentPreview.trigger.type === "schedule";
+            const fromTokenInfo = config.fromTokenInfo || { symbol: config.fromToken || "USDC", contractAddress: "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913" };
+            const toTokenInfo = config.toTokenInfo || { symbol: config.toToken || "ETH", contractAddress: "0x4200000000000000000000000000000000000006" };
+            
+            const amountUsd = config.amountUsd || 10;
+            const frequency = config.frequency || "daily";
+            
+            const creationDate = new Date(message.intentPreview.createdAt || Date.now());
+            const expiresDate = new Date(message.intentPreview.execution?.expiresAt || (Date.now() + 30 * 24 * 3600 * 1000));
+            
+            const formatDate = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+            const formatTime = (d: Date) => d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", timeZoneName: "short" });
 
-                        <div className="flex justify-between items-center text-md pt-2">
-                          <span className="text-muted-foreground">Buy</span>
-                          <span className="font-medium text-right max-w-[180px]">
-                            ${message.intentPreview.trigger.config.amountUsd}{" "}
-                            &nbsp;
-                            {message.intentPreview.trigger.config.toToken ||
-                              message.intentPreview.trigger.config.targetToken}
-                          </span>
-                        </div>
-                        <div className="flex justify-between items-center text-md pt-2">
-                          <span className="text-muted-foreground">
-                            Pay with
-                          </span>
-                          <span className="font-medium text-right max-w-[180px]">
-                            {message.intentPreview.trigger.config.fromToken}
-                          </span>
-                        </div>
-                      </>
-                    )}
-                    <div className="flex justify-between items-center text-md">
-                      <span className="text-muted-foreground">Est. Fee</span>
-                      <span className="font-medium">
-                        {message.intentPreview.preview.estimatedFee}
-                      </span>
+            return (
+              <div className="mt-10 w-full max-w-[calc(100vw)] sm:max-w-md px-0.5">
+                <Card className="overflow-hidden bg-background border-border shadow-sm backdrop-blur-md">
+                  <CardContent className="">
+                    <div className="flex items-center gap-2 font-semibold mb-4 text-lg">
+                      Automation Summary
                     </div>
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center text-md">
+                        <span className="text-muted-foreground">Automation</span>
+                        <span className="font-semibold capitalize">
+                          {isSchedule ? "Recurring Buy" : "Price Condition Trigger"}
+                        </span>
+                      </div>
 
-                    {/* {message.intentPreview.preview.permissionsRequired && message.intentPreview.preview.permissionsRequired.length > 0 && (
-                      <div className="flex justify-between items-start text-xs border-t border-primary/10 pt-2">
-                        <span className="text-muted-foreground">Permissions</span>
-                        <div className="flex flex-col items-end gap-1">
-                          {message.intentPreview.preview.permissionsRequired.map((perm, idx) => (
-                            <span key={idx} className="font-medium">
-                              {perm.amount} {perm.token}
+                      {isSchedule ? (
+                        <>
+                          <div className="flex justify-between items-center text-md pt-2">
+                            <span className="text-muted-foreground">Buy</span>
+                            <span className="font-medium text-right flex items-center gap-1.5">
+                              ${amountUsd} <TokenBadge tokenInfo={toTokenInfo} />
                             </span>
-                          ))}
-                        </div>
-                      </div>
-                    )} */}
+                          </div>
+                          <div className="flex justify-between items-center text-md pt-2">
+                            <span className="text-muted-foreground">Pay with</span>
+                            <span className="font-medium text-right">
+                              <TokenBadge tokenInfo={fromTokenInfo} />
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center text-md pt-2">
+                            <span className="text-muted-foreground">Frequency</span>
+                            <span className="font-medium text-right capitalize">
+                              {frequency}
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center text-md pt-2">
+                            <span className="text-muted-foreground">Time</span>
+                            <span className="font-medium text-right">
+                              {formatTime(creationDate)}
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center text-md pt-2">
+                            <span className="text-muted-foreground">Starts</span>
+                            <span className="font-medium text-right">
+                              {formatDate(creationDate)}
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center text-md pt-2">
+                            <span className="text-muted-foreground">Ends</span>
+                            <span className="font-medium text-right">
+                              {formatDate(expiresDate)}
+                            </span>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="flex justify-between items-center text-md pt-2">
+                            <span className="text-muted-foreground">Condition</span>
+                            <span className="font-medium text-right flex items-center gap-1.5">
+                              If <TokenBadge tokenInfo={toTokenInfo} /> {config.conditionType === "drops_below" ? "drops below" : "rises above"} ${config.targetValue}
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center text-md pt-2">
+                            <span className="text-muted-foreground">Action</span>
+                            <span className="font-medium text-right flex items-center gap-1.5">
+                              Swap ${amountUsd} <TokenBadge tokenInfo={fromTokenInfo} /> for <TokenBadge tokenInfo={toTokenInfo} />
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center text-md pt-2">
+                            <span className="text-muted-foreground">Starts</span>
+                            <span className="font-medium text-right">
+                              {formatDate(creationDate)}
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center text-md pt-2">
+                            <span className="text-muted-foreground">Ends</span>
+                            <span className="font-medium text-right">
+                              {formatDate(expiresDate)}
+                            </span>
+                          </div>
+                        </>
+                      )}
 
-                    {message.intentPreview.preview.riskSummary && (
-                      <div className="flex justify-between items-center text-sm text-accent-foreground/60 border-t border-primary/10 pt-2">
-                        <span className="font-medium text-left mt-6 italic">
-                          {message.intentPreview.preview.riskSummary}
+                      <div className="flex justify-between items-center text-md pt-2">
+                        <span className="text-muted-foreground">Est. Fee</span>
+                        <span className="font-medium">
+                          {message.intentPreview.preview.estimatedFee}
                         </span>
                       </div>
-                    )}
-                  </div>
-                  <div className="mt-4 flex gap-2">
-                    <Button
-                      size="lg"
-                      className="flex-1 h-10 text-[15px] font-bold"
-                      onClick={() => onConfirm?.()}
-                    >
-                      Confirm
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
 
-          {message.automationPreview && (
-            <div className="mt-2 w-full max-w-[calc(100vw)] sm:max-w-md">
-              <Card className="overflow-hidden border-primary/20 bg-card backdrop-blur-md">
-                <CardContent className="">
-                  <div className="flex justify-between items-center mb-4 border-b border-border pb-3">
-                    <div className="flex items-center gap-2">
-                      {/* <div className="size-2 rounded-full bg-emerald-500 animate-pulse" /> */}
-                      <span className="font-bold text-xs tracking-wider uppercase">
+                      {/* Permissions Section */}
+                      <div className="border-t border-primary/10 pt-3 mt-3">
+                        <span className="text-sm font-semibold text-foreground block mb-2">Qleva can act within these limits:</span>
+                        <ul className="text-xs space-y-1.5 text-muted-foreground pl-4 list-disc">
+                          <li>Spend up to ${amountUsd} {fromTokenInfo.symbol} per execution</li>
+                          <li>Execute {isSchedule ? `once per ${frequency === "daily" ? "day" : frequency === "weekly" ? "week" : "month"}` : "on price condition"}</li>
+                          <li>Permission expires {formatDate(expiresDate)}</li>
+                        </ul>
+                      </div>
+                    </div>
+                    <div className="mt-4 flex gap-2">
+                      <Button
+                        size="lg"
+                        className="flex-1 h-10 text-[15px] font-bold"
+                        onClick={() => onConfirm?.(message.intentPreview)}
+                      >
+                        Approve & Sign
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            );
+          })()}
+
+          {message.automationPreview && (() => {
+            const auto = message.automationPreview;
+            const config = auto.trigger?.config || {};
+            const isSchedule = auto.trigger?.type === "schedule";
+            const fromTokenInfo = config.fromTokenInfo || { symbol: config.fromToken || "USDC" };
+            const toTokenInfo = config.toTokenInfo || { symbol: config.toToken || "ETH" };
+
+            const isActive = auto.status === "active";
+            const amountUsd = config.amountUsd || 10;
+            const frequency = config.frequency || "daily";
+
+            const creationDate = new Date(auto.createdAt || Date.now());
+            const expiresDate = new Date(auto.execution?.expiresAt || (Date.now() + 30 * 24 * 3600 * 1000));
+            const nextExecutionDate = auto.execution?.nextExecutionAt ? new Date(auto.execution.nextExecutionAt) : null;
+            
+            const formatDate = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+            const formatTime = (d: Date) => d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", timeZoneName: "short" });
+
+            const currentRuns = auto.execution?.currentRuns || 0;
+            const accumulatedVolume = currentRuns * amountUsd;
+
+            const handleToggle = () => {
+              const nextStatus = isActive ? "paused" : "active";
+              toggleMutation.mutate({ id: auto.id, status: nextStatus });
+            };
+
+            const handleDelete = () => {
+              if (confirm("Are you sure you want to delete this automation?")) {
+                deleteMutation.mutate(auto.id);
+              }
+            };
+
+            return (
+              <div className="mt-10 w-full max-w-[calc(100vw)] sm:max-w-md px-0.5">
+                <Card className="overflow-hidden bg-background border-border shadow-sm backdrop-blur-md">
+                  <CardContent className="">
+                    <div className="flex justify-between items-center mb-4 pb-1">
+                      <div className="flex items-center gap-2 font-semibold text-lg">
+                        
                         Active Automation
-                      </span>
-                    </div>
-                    <Badge variant="outline" className=" text-[10px] h-5">
-                      {message.automationPreview.status}
-                    </Badge>
-                  </div>
-
-                  <div className="space-y-3 mb-5">
-                    <div className="flex flex-col gap-1">
-                      <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">
-                        Strategy
-                      </span>
-                      <span className="font-medium text-sm text-foreground">
-                        {message.automationPreview.preview?.humanReadable ||
-                          "Custom Strategy"}
-                      </span>
+                      </div>
+                      <Badge variant="outline" className="text-xs px-2 py-0.5 capitalize border-emerald-500/30 text-emerald-500 bg-emerald-500/5">
+                        {auto.status}
+                      </Badge>
                     </div>
 
-                    {message.automationPreview.trigger && (
-                      <div className="flex justify-between items-center text-xs border-t border-primary/20 pt-2">
-                        <span className="text-muted-foreground">Trigger</span>
-                        <span className="font-medium text-right">
-                          {message.automationPreview.trigger.type}
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center text-md">
+                        <span className="text-muted-foreground">Automation</span>
+                        <span className="font-semibold capitalize">
+                          {isSchedule ? "Recurring Buy" : "Price Condition Trigger"}
                         </span>
                       </div>
-                    )}
 
-                    <div className="flex justify-between items-center text-xs border-t border-primary/20 pt-2">
-                      <span className="text-muted-foreground">ID</span>
-                      <span className="font-mono text-emerald-500/80">
-                        {message.automationPreview.id?.slice(0, 8)}...
-                      </span>
+                      {isSchedule ? (
+                        <>
+                          <div className="flex justify-between items-center text-md pt-2">
+                            <span className="text-muted-foreground">Buy</span>
+                            <span className="font-medium text-right flex items-center gap-1.5">
+                              ${amountUsd} <TokenBadge tokenInfo={toTokenInfo} />
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center text-md pt-2">
+                            <span className="text-muted-foreground">Pay with</span>
+                            <span className="font-medium text-right">
+                              <TokenBadge tokenInfo={fromTokenInfo} />
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center text-md pt-2">
+                            <span className="text-muted-foreground">Frequency</span>
+                            <span className="font-medium text-right capitalize">
+                              {frequency}
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center text-md pt-2">
+                            <span className="text-muted-foreground">Time</span>
+                            <span className="font-medium text-right">
+                              {formatTime(creationDate)}
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center text-md pt-2">
+                            <span className="text-muted-foreground">Starts</span>
+                            <span className="font-medium text-right">
+                              {formatDate(creationDate)}
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center text-md pt-2">
+                            <span className="text-muted-foreground">Ends</span>
+                            <span className="font-medium text-right">
+                              {formatDate(expiresDate)}
+                            </span>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="flex justify-between items-center text-md pt-2">
+                            <span className="text-muted-foreground">Condition</span>
+                            <span className="font-medium text-right flex items-center gap-1.5">
+                              If <TokenBadge tokenInfo={toTokenInfo} /> {config.conditionType === "drops_below" ? "drops below" : "rises above"} ${config.targetValue}
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center text-md pt-2">
+                            <span className="text-muted-foreground">Action</span>
+                            <span className="font-medium text-right flex items-center gap-1.5">
+                              Swap ${amountUsd} <TokenBadge tokenInfo={fromTokenInfo} /> for <TokenBadge tokenInfo={toTokenInfo} />
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center text-md pt-2">
+                            <span className="text-muted-foreground">Starts</span>
+                            <span className="font-medium text-right">
+                              {formatDate(creationDate)}
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center text-md pt-2">
+                            <span className="text-muted-foreground">Ends</span>
+                            <span className="font-medium text-right">
+                              {formatDate(expiresDate)}
+                            </span>
+                          </div>
+                        </>
+                      )}
+
+                      {isActive && nextExecutionDate && (
+                        <div className="flex justify-between items-center text-md pt-2">
+                          <span className="text-muted-foreground">Next Execution</span>
+                          <span className="font-medium flex items-center gap-1">
+                            <Clock className="size-3.5 text-primary" />
+                            {formatDate(nextExecutionDate)}
+                          </span>
+                        </div>
+                      )}
+
+                      <div className="flex justify-between items-center text-md pt-2">
+                        <span className="text-muted-foreground">Runs</span>
+                        <span className="font-medium">{currentRuns}</span>
+                      </div>
+
+                      {/* <div className="flex justify-between items-center text-md pt-2">
+                        <span className="text-muted-foreground">Volume</span>
+                        <span className="font-semibold text-emerald-500">{formatCurrency(accumulatedVolume)}</span>
+                      </div> */}
                     </div>
-                  </div>
 
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="flex-1 h-8 text-[11px] font-bold border-white/10 hover:bg-white/5"
-                    >
-                      Pause
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="flex-1 h-8 text-[11px] font-bold border-red-500/30 text-red-500 hover:bg-red-500/10 hover:text-red-400"
-                    >
-                      Delete
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
+                    <div className="mt-5 flex flex-col gap-2 border-t border-primary/10 pt-4">
+                      <Button
+                        size="lg"
+                        className="w-full h-10 text-md font-bold bg-primary text-primary-foreground"
+                        onClick={() => router.push(`/automations/${auto.id}`)}
+                      >
+                       View Automation
+                      </Button>
+                      {/* <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="flex-1 h-8 text-[11px] font-bold border-white/10 hover:bg-white/5"
+                          onClick={handleToggle}
+                          disabled={toggleMutation.isPending}
+                        >
+                          {isActive ? "Pause" : "Resume"}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="flex-1 h-8 text-[11px] font-bold border-red-500/20 text-red-500 hover:bg-red-500/10 hover:text-red-400"
+                          onClick={handleDelete}
+                          disabled={deleteMutation.isPending}
+                        >
+                          Delete
+                        </Button>
+                      </div> */}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            );
+          })()}
 
           {message.executionStatus && (
             <div className="mt-2">
@@ -523,7 +719,173 @@ export function ChatContent({ chatId }: ChatContentProps) {
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const messagesContainerRef = React.useRef<HTMLDivElement | null>(null);
   const [showScrollToBottom, setShowScrollToBottom] = React.useState(false);
-   const isMobile = useIsMobile()
+  const isMobile = useIsMobile()
+
+  const { wallets } = useWallets();
+
+  const handleApproveAndSign = async (intentPreview: any) => {
+    if (isThinking) return;
+    setIsThinking(true);
+    setStreamingSteps([
+      {
+        id: "signing",
+        message: "Requesting wallet signature for Spend Permission...",
+        status: "signing",
+        completed: false,
+      },
+    ]);
+
+    try {
+      // Prioritize Privy embedded wallet to ensure social login users sign via Privy
+      const activeWallet = wallets.find((w) => w.walletClientType === "privy") ||
+                           wallets.find((w) => w.walletClientType === "coinbase_wallet" || w.address.toLowerCase() === intentPreview.smartWalletAddress.toLowerCase()) ||
+                           wallets[0];
+      
+      if (!activeWallet) {
+        throw new Error("No active wallet connected. Please connect a wallet first.");
+      }
+
+      const provider = await activeWallet.getEthereumProvider();
+      
+      const tokenAddress = intentPreview.actions?.[0]?.config?.from || "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913"; // Default to USDC
+      const amount = intentPreview.actions?.[0]?.config?.amount || 10;
+      
+      const isEth = tokenAddress.toLowerCase() === "0x4200000000000000000000000000000000000006";
+      const allowance = parseUnits(amount.toString(), isEth ? 18 : 6).toString();
+      
+      const period = 86400; // 1 day
+      const start = Math.floor(Date.now() / 1000);
+      const end = start + 30 * 24 * 3600; // 30 days
+      const salt = Math.floor(Math.random() * 10000000).toString();
+      const extraData = "0x";
+      const spender = intentPreview.spender || "0x8888888888888888888888888888888888888888";
+
+      let chainId = 84532; // Default to Base Sepolia
+      if (activeWallet.chainId) {
+        const parsed = parseInt(activeWallet.chainId.replace("eip155:", ""));
+        if (!isNaN(parsed)) {
+          chainId = parsed;
+        }
+      }
+
+      const domain = {
+        name: "Spend Permission Manager",
+        version: "1",
+        chainId,
+        verifyingContract: "0xf85210B21cC50302F477BA56686d2019dC9b67Ad",
+      };
+
+      const SpendPermissionTypes = {
+        SpendPermission: [
+          { name: "account", type: "address" },
+          { name: "spender", type: "address" },
+          { name: "token", type: "address" },
+          { name: "allowance", type: "uint160" },
+          { name: "period", type: "uint48" },
+          { name: "start", type: "uint48" },
+          { name: "end", type: "uint48" },
+          { name: "salt", type: "uint256" },
+          { name: "extraData", type: "bytes" },
+        ],
+      };
+
+      const signature = await provider.request({
+        method: "eth_signTypedData_v4",
+        params: [
+          activeWallet.address,
+          JSON.stringify({
+            domain,
+            types: {
+              EIP712Domain: [
+                { name: "name", type: "string" },
+                { name: "version", type: "string" },
+                { name: "chainId", type: "uint256" },
+                { name: "verifyingContract", type: "address" },
+              ],
+              ...SpendPermissionTypes,
+            },
+            primaryType: "SpendPermission",
+            message: {
+              account: intentPreview.smartWalletAddress,
+              spender,
+              token: tokenAddress,
+              allowance,
+              period,
+              start,
+              end,
+              salt,
+              extraData,
+            },
+          }),
+        ],
+      });
+
+      setStreamingSteps((prev) => [
+        ...prev.map((s) => ({ ...s, completed: true })),
+        {
+          id: "registering",
+          message: "Registering spend permission and activating strategy...",
+          status: "registering",
+          completed: false,
+        },
+      ]);
+
+      const token = await getAccessToken();
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+
+      const response = await fetch(`${baseUrl}/api/automations/register`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          chatId,
+          automation: intentPreview,
+          permission: {
+            account: intentPreview.smartWalletAddress,
+            spender,
+            token: tokenAddress,
+            allowance,
+            period,
+            start,
+            end,
+            salt,
+            extraData,
+            signature,
+            chainId,
+            signerAddress: activeWallet.address,
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || "Failed to register automation");
+      }
+
+      setIsThinking(false);
+      setStreamingSteps([]);
+
+      if (chatId) {
+        queryClient.invalidateQueries({ queryKey: ["chat-messages", chatId] });
+      }
+      queryClient.invalidateQueries({ queryKey: ["automations"] });
+
+    } catch (error: any) {
+      console.error("[Frontend] HandleApproveAndSign failed:", error);
+      setIsThinking(false);
+      setStreamingSteps([]);
+
+      const errorMessage: ChatMessage = {
+        id: `err_${Date.now()}`,
+        role: "assistant",
+        content: `⚠️ **Approval Failed**\n\n${error.message || "Could not complete the wallet signature or register the spend permission."}`,
+        timestamp: new Date().toISOString(),
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+    }
+  };
 
   React.useEffect(() => {
     const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
@@ -738,7 +1100,7 @@ export function ChatContent({ chatId }: ChatContentProps) {
                   <MessageBubble
                     key={msg.id}
                     message={msg}
-                    onConfirm={() => handleSend("Confirm")}
+                    onConfirm={(intentPreview) => handleApproveAndSign(intentPreview)}
                   />
                 ))}
                 {isThinking && streamingSteps.length > 0 && (

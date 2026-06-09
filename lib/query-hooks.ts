@@ -204,6 +204,81 @@ export function useAutomation(id: string) {
   });
 }
 
+export function useAutomationExecutions(id: string) {
+  const { getAccessToken } = usePrivy();
+
+  return useQuery({
+    queryKey: ["automations", id, "executions"],
+    queryFn: async () => {
+      const token = await getAccessToken();
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+      const res = await fetch(`${baseUrl}/api/automations/${id}/executions`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (!res.ok) {
+        throw new Error("Failed to fetch executions");
+      }
+      return res.json();
+    },
+    enabled: !!id,
+  });
+}
+
+export function useToggleAutomationStatus() {
+  const { getAccessToken } = usePrivy();
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+      const token = await getAccessToken();
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+      const res = await fetch(`${baseUrl}/api/automations/${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ status }),
+      });
+      if (!res.ok) {
+        throw new Error("Failed to update automation status");
+      }
+      return res.json();
+    },
+    onSuccess: (data, variables) => {
+      qc.invalidateQueries({ queryKey: ["automations"] });
+      qc.invalidateQueries({ queryKey: ["automations", variables.id] });
+    },
+  });
+}
+
+export function useDeleteAutomation() {
+  const { getAccessToken } = usePrivy();
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const token = await getAccessToken();
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+      const res = await fetch(`${baseUrl}/api/automations/${id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (!res.ok) {
+        throw new Error("Failed to delete automation");
+      }
+      return id;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["automations"] });
+    },
+  });
+}
+
 // Activity hooks
 export function useActivity() {
   const { wallets, selectedWalletId } = useWalletStore();
