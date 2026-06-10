@@ -19,7 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAutomations, useToggleAutomationStatus, useDeleteAutomation } from "@/lib/query-hooks";
-import { cn } from "@/lib/utils";
+import { cn, getFriendlyScheduleDescription } from "@/lib/utils";
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("en-US", {
@@ -139,11 +139,14 @@ function AutomationCard({ automation }: { automation: any }) {
         )}
         onClick={() => router.push(`/automations/${automation.id}`)}
       >
-        <CardContent className="space-y-4">
+        <CardContent className="p-5 space-y-4">
           {/* Header */}
-          <div className="flex justify-between items-center pb-2 border-0 border-border/30">
-            <h3 className="font-heading text-lg font-bold tracking-tight text-foreground/90">
-              {isSchedule ? "Recurring Swap Strategy" : "Price Condition Trigger"}
+          <div className="flex justify-between items-center pb-2 border-b border-border/30">
+            <h3 className="font-heading text-sm font-bold tracking-tight text-foreground/90">
+              {isSchedule 
+                ? (config.schedule?.mode === "once" ? "One-Time Scheduled Swap" : "Recurring Swap Strategy")
+                : "Price Condition Trigger"
+              }
             </h3>
             <Badge
               variant={isActive ? "default" : "secondary"}
@@ -158,7 +161,7 @@ function AutomationCard({ automation }: { automation: any }) {
 
           {/* Details list */}
           <div className="space-y-2.5">
-            <div className="flex justify-between items-center text-md border-b border-border/30 pb-2.5">
+            <div className="flex justify-between items-center text-xs border-b border-border/30 pb-2.5">
               <span className="text-muted-foreground">Token Path</span>
               <span className="flex items-center gap-1.5">
                 <TokenBadge tokenInfo={fromTokenInfo} />
@@ -167,39 +170,50 @@ function AutomationCard({ automation }: { automation: any }) {
               </span>
             </div>
 
-            <div className="flex justify-between items-center text-md border-b border-border/30 pb-2.5">
+            <div className="flex justify-between items-center text-xs border-b border-border/30 pb-2.5">
               <span className="text-muted-foreground">Execution Trade Size</span>
               <span className="font-semibold text-emerald-500">{formatCurrency(amountUsd)}</span>
             </div>
 
             {isSchedule ? (
-              <div className="flex justify-between items-center text-md border-b border-border/30 pb-2.5">
-                <span className="text-muted-foreground">Frequency Interval</span>
-                <span className="font-medium capitalize">{frequency}</span>
-              </div>
+              <>
+                <div className="flex justify-between items-center text-xs border-b border-border/30 pb-2.5">
+                  <span className="text-muted-foreground">Schedule</span>
+                  <span className="font-medium capitalize">
+                    {getFriendlyScheduleDescription(config.schedule, frequency, config.startDateText)}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-xs border-b border-border/30 pb-2.5">
+                  <span className="text-muted-foreground">Ends</span>
+                  <span className="font-medium flex items-center gap-1">
+                    <Calendar className="size-3 text-muted-foreground" />
+                    {config.schedule?.mode === "once" ? "After execution" : formatDate(expiresDate)}
+                  </span>
+                </div>
+              </>
             ) : (
-              <div className="flex justify-between items-center text-md border-b border-border/30 pb-2.5">
-                <span className="text-muted-foreground">Trigger Condition</span>
-                <span className="font-medium text-right capitalize">
-                  {config.conditionType?.split("_").join(" ") || "Drops below"} ${config.targetValue}
-                </span>
-              </div>
+              <>
+                <div className="flex justify-between items-center text-xs border-b border-border/30 pb-2.5">
+                  <span className="text-muted-foreground">Trigger Condition</span>
+                  <span className="font-medium text-right capitalize">
+                    {config.conditionType?.split("_").join(" ") || "Drops below"} ${config.targetValue}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-xs border-b border-border/30 pb-2.5">
+                  <span className="text-muted-foreground">Starts</span>
+                  <span className="font-medium">{formatDate(creationDate)}</span>
+                </div>
+                <div className="flex justify-between items-center text-xs border-b border-border/30 pb-2.5">
+                  <span className="text-muted-foreground">Ends</span>
+                  <span className="font-medium flex items-center gap-1">
+                    <Calendar className="size-3 text-muted-foreground" />
+                    {formatDate(expiresDate)}
+                  </span>
+                </div>
+              </>
             )}
 
-            <div className="flex justify-between items-center text-md border-b border-border/30 pb-2.5">
-              <span className="text-muted-foreground">Starts</span>
-              <span className="font-medium">{formatDate(creationDate)}</span>
-            </div>
-
-            <div className="flex justify-between items-center text-md border-b border-border/30 pb-2.5">
-              <span className="text-muted-foreground">Ends</span>
-              <span className="font-medium flex items-center gap-1">
-                <Calendar className="size-3 text-muted-foreground" />
-                {formatDate(expiresDate)}
-              </span>
-            </div>
-
-            <div className="flex justify-between items-center text-md border-b border-border/30 pb-2.5">
+            <div className="flex justify-between items-center text-xs border-b border-border/30 pb-2.5">
               <span className="text-muted-foreground">Next Execution</span>
               <span className="font-medium flex items-center gap-1">
                 <Clock className="size-3 text-primary" />
@@ -207,12 +221,12 @@ function AutomationCard({ automation }: { automation: any }) {
               </span>
             </div>
 
-            <div className="flex justify-between items-center text-md border-b border-border/30 pb-2.5">
+            <div className="flex justify-between items-center text-xs border-b border-border/30 pb-2.5">
               <span className="text-muted-foreground">Runs</span>
               <span className="font-medium">{currentRuns}</span>
             </div>
 
-            <div className="flex justify-between items-center text-md pb-0.5">
+            <div className="flex justify-between items-center text-xs pb-0.5">
               <span className="text-muted-foreground">Volume</span>
               <span className="font-semibold text-emerald-500">{formatCurrency(volume)}</span>
             </div>
@@ -223,14 +237,14 @@ function AutomationCard({ automation }: { automation: any }) {
             <Button
               size="sm"
               variant="outline"
-              className="flex-1 h-9 text-xs font-bold border-border hover:bg-white/5"
+              className="flex-1 h-9 text-xs font-bold border-white/10 hover:bg-white/5"
               onClick={handleToggle}
               disabled={toggleMutation.isPending}
             >
               {isActive ? <Pause className="size-3.5 mr-1.5" /> : <Play className="size-3.5 mr-1.5" />}
               {isActive ? "Pause" : "Resume"}
             </Button>
-            {/* <Button
+            <Button
               size="sm"
               variant="outline"
               className="h-9 px-3 text-xs font-bold border-red-500/20 text-red-500 hover:bg-red-500/10 hover:text-red-400"
@@ -238,10 +252,10 @@ function AutomationCard({ automation }: { automation: any }) {
               disabled={deleteMutation.isPending}
             >
               <Trash2 className="size-3.5" />
-            </Button> */}
+            </Button>
             <Button
               size="sm"
-              className="flex-1 h-9 text-xs font-bold bg-primary text-primary-foreground"
+              className="flex-1 h-9 text-xs font-bold bg-primary/10 hover:bg-primary/20 text-primary border border-primary/10"
               onClick={(e) => {
                 e.stopPropagation();
                 router.push(`/automations/${automation.id}`);

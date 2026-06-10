@@ -23,7 +23,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAutomation, useAutomationExecutions, useToggleAutomationStatus, useDeleteAutomation } from "@/lib/query-hooks";
-import { cn } from "@/lib/utils";
+import { cn, getFriendlyScheduleDescription } from "@/lib/utils";
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("en-US", {
@@ -209,7 +209,12 @@ export default function AutomationDetailsPage() {
                     {/* Strategy type */}
                     <div className="flex justify-between items-center text-sm border-b border-border/40 pb-3">
                       <span className="text-muted-foreground">Strategy Type</span>
-                      <span className="font-medium capitalize">{isSchedule ? "Recurring Swap" : "Price Limit Trigger"}</span>
+                      <span className="font-medium capitalize">
+                        {isSchedule 
+                          ? (config.schedule?.mode === "once" ? "One-Time Scheduled Swap" : "Recurring Swap Strategy")
+                          : "Price Limit Trigger"
+                        }
+                      </span>
                     </div>
 
                     {/* Tokens */}
@@ -231,8 +236,10 @@ export default function AutomationDetailsPage() {
                     {/* Specific details */}
                     {isSchedule ? (
                       <div className="flex justify-between items-center text-sm border-b border-border/40 pb-3">
-                        <span className="text-muted-foreground">Frequency Interval</span>
-                        <span className="font-medium capitalize">{config.frequency}</span>
+                        <span className="text-muted-foreground">Schedule</span>
+                        <span className="font-medium capitalize">
+                          {getFriendlyScheduleDescription(config.schedule, config.frequency, config.startDateText)}
+                        </span>
                       </div>
                     ) : (
                       <>
@@ -256,7 +263,7 @@ export default function AutomationDetailsPage() {
                       <span className="text-muted-foreground">Next Scheduled Execution</span>
                       <span className="font-medium flex items-center gap-1.5">
                         <Clock className="size-3.5 text-primary" />
-                        {isActive ? formatDate(automation.execution?.nextExecutionAt) : "Paused"}
+                        {isActive ? (automation.execution?.nextExecutionAt ? formatDate(automation.execution.nextExecutionAt) : "Not scheduled") : "Paused"}
                       </span>
                     </div>
 
@@ -265,7 +272,7 @@ export default function AutomationDetailsPage() {
                       <span className="text-muted-foreground">Expiration Date</span>
                       <span className="font-medium flex items-center gap-1.5">
                         <Calendar className="size-3.5 text-muted-foreground" />
-                        {formatDate(automation.execution?.expiresAt)}
+                        {config.schedule?.mode === "once" ? "After execution" : formatDate(automation.execution?.expiresAt)}
                       </span>
                     </div>
                   </div>

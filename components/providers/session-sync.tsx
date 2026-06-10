@@ -14,6 +14,7 @@ interface UserProfileData {
   smartWalletType: string | null;
   walletType?: string | null;
   oauthProvider: string | null;
+  authMethod: string | null;
   name: string | null;
   username: string | null;
   avatarUrl: string | null;
@@ -28,6 +29,7 @@ export function extractUserProfile(user: any): Omit<UserProfileData, "lastLoginA
       email: null,
       walletAddress: null,
       oauthProvider: null,
+      authMethod: null,
       name: null,
       username: null,
       avatarUrl: null,
@@ -111,6 +113,8 @@ export function extractUserProfile(user: any): Omit<UserProfileData, "lastLoginA
   // Final fallbacks if name is empty
   const displayName = name || username || (email ? email.split("@")[0] : null) || abbreviatedAddress || "Qleva User";
 
+  const authMethod = isSocialUser ? "social" : "wallet";
+
   return {
     did: user.id,
     createdAt: user.createdAt?.toString() || new Date().toISOString(),
@@ -122,6 +126,7 @@ export function extractUserProfile(user: any): Omit<UserProfileData, "lastLoginA
       ? null 
       : (user.wallet?.walletClientType || (user as any)?.wallets?.[0]?.walletClientType || null),
     oauthProvider,
+    authMethod,
     name: displayName,
     username: username || (email ? email.split("@")[0] : null),
     avatarUrl,

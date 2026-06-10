@@ -16,7 +16,7 @@ export default function AuthPage() {
 
   useEffect(() => {
     if (ready && authenticated) {
-      router.replace("/portfolio");
+      router.replace("/");
     }
 
     console.log("----------------------------------------")

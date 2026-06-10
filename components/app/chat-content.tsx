@@ -39,7 +39,7 @@ import { useChatMessages, useSendMessage, useToggleAutomationStatus, useDeleteAu
 import { useQueryClient } from "@tanstack/react-query";
 import { usePrivy, useWallets } from "@privy-io/react-auth";
 import { parseUnits } from "viem";
-import { cn } from "@/lib/utils";
+import { cn, getFriendlyScheduleDescription } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 const TokenLink = ({ tokenInfo }: { tokenInfo: any }) => {
@@ -96,7 +96,7 @@ interface ChatMessage {
     createdAt?: string;
     execution?: any;
     trigger: {
-      type: "schedule" | "price_condition";
+      type: "schedule" | "price_condition" | "swap";
       config: any;
     };
     actions: Array<{
@@ -128,21 +128,390 @@ const suggestionChips = [
   { label: "Swap USDC/ETH", icon: <ArrowRightLeft className="size-3" /> },
 ];
 
+const TOKEN_ADDRESSES: Record<string, string> = {
+  usdc: "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+  eth: "0x4200000000000000000000000000000000000006",
+  weth: "0x4200000000000000000000000000000000000006",
+  usdt: "0x50c5725949a6f0c72e6c4a641f24029a262da18a",
+  sol: "0x2eed5cb7c1692ec1741d4013149ca7171d1887e5",
+  wbtc: "0x03c6b2015b50c0c6e83863d0246a48235272a088",
+};
+
+const resolveTokenAddress = (symbol: string) => {
+  return TOKEN_ADDRESSES[symbol.toLowerCase()] || "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913";
+};
+
+interface EditableSwapCardProps {
+  intentPreview: any;
+  chatId?: string;
+  onSuccess: () => void;
+}
+
+export function EditableSwapCard({ intentPreview, chatId, onSuccess }: EditableSwapCardProps) {
+  const config = intentPreview.trigger?.config || {};
+  const { wallets } = useWallets();
+  const { getAccessToken } = usePrivy();
+  const queryClient = useQueryClient();
+
+  const [fromToken, setFromToken] = React.useState(config.fromToken || "USDC");
+  const [toToken, setToToken] = React.useState(config.toToken || "ETH");
+  const [amountUsd, setAmountUsd] = React.useState(config.amountUsd || 10);
+  const [walletType, setWalletType] = React.useState<"smart" | "connected">(config.walletType || "smart");
+  
+  const [isExecuting, setIsExecuting] = React.useState(false);
+  const [statusMessage, setStatusMessage] = React.useState("");
+  const [errorMsg, setErrorMsg] = React.useState("");
+
+  const fromTokenInfo = config.fromTokenInfo || { symbol: fromToken };
+  const toTokenInfo = config.toTokenInfo || { symbol: toToken };
+
+  const defaultPrices: Record<string, number> = {
+    usdc: 1.0,
+    usdt: 1.0,
+    eth: 3500.0,
+    weth: 3500.0,
+    sol: 150.0,
+    wbtc: 68000.0,
+    btc: 68000.0,
+  };
+
+  const getPrice = (symbol: string, info: any) => {
+    const sym = symbol.toLowerCase();
+    if (info && info.symbol?.toLowerCase() === sym && info.priceUsd) {
+      return info.priceUsd;
+    }
+    return defaultPrices[sym] || 1.0;
+  };
+
+  const toPrice = getPrice(toToken, toTokenInfo);
+  const estimatedOutputAmount = (amountUsd / toPrice).toFixed(4);
+
+  const handleExecute = async () => {
+    if (isExecuting) return;
+    setIsExecuting(true);
+    setErrorMsg("");
+    setStatusMessage("Connecting to wallet...");
+
+    try {
+      const activeWallet = wallets.find((w) => w.walletClientType === "privy") ||
+                           wallets.find((w) => w.walletClientType === "coinbase_wallet") ||
+                           wallets[0];
+
+      if (!activeWallet) {
+        throw new Error("No active wallet connected. Please connect a wallet first.");
+      }
+
+      const provider = await activeWallet.getEthereumProvider();
+      const token = await getAccessToken();
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+
+      const fromAddress = resolveTokenAddress(fromToken);
+      const toAddress = resolveTokenAddress(toToken);
+
+      const swapDetails = {
+        fromToken: {
+          contractAddress: fromAddress,
+          symbol: fromToken.toUpperCase(),
+          decimals: fromToken.toLowerCase() === "eth" ? 18 : 6,
+          name: fromToken.toUpperCase(),
+          priceUsd: getPrice(fromToken, fromTokenInfo)
+        },
+        toToken: {
+          contractAddress: toAddress,
+          symbol: toToken.toUpperCase(),
+          decimals: toToken.toLowerCase() === "eth" ? 18 : 6,
+          name: toToken.toUpperCase(),
+          priceUsd: toPrice
+        },
+        amountUsd
+      };
+
+      if (walletType === "smart") {
+        setStatusMessage("Requesting Smart Wallet Spend Permission signature...");
+        
+        const allowance = parseUnits(amountUsd.toString(), fromToken.toLowerCase() === "eth" ? 18 : 6).toString();
+        const period = 86400; // 1 day
+        const start = Math.floor(Date.now() / 1000);
+        const end = start + 30 * 24 * 3600; // 30 days
+        const salt = Math.floor(Math.random() * 10000000).toString();
+        const extraData = "0x";
+        const spender = intentPreview.spender || "0x8888888888888888888888888888888888888888";
+
+        let chainId = 84532; // Default to Base Sepolia
+        if (activeWallet.chainId) {
+          const parsed = parseInt(activeWallet.chainId.replace("eip155:", ""));
+          if (!isNaN(parsed)) {
+            chainId = parsed;
+          }
+        }
+
+        const domain = {
+          name: "Spend Permission Manager",
+          version: "1",
+          chainId,
+          verifyingContract: "0xf85210B21cC50302F477BA56686d2019dC9b67Ad",
+        };
+
+        const SpendPermissionTypes = {
+          SpendPermission: [
+            { name: "account", type: "address" },
+            { name: "spender", type: "address" },
+            { name: "token", type: "address" },
+            { name: "allowance", type: "uint160" },
+            { name: "period", type: "uint48" },
+            { name: "start", type: "uint48" },
+            { name: "end", type: "uint48" },
+            { name: "salt", type: "uint256" },
+            { name: "extraData", type: "bytes" },
+          ],
+        };
+
+        const signature = await provider.request({
+          method: "eth_signTypedData_v4",
+          params: [
+            activeWallet.address,
+            JSON.stringify({
+              domain,
+              types: {
+                EIP712Domain: [
+                  { name: "name", type: "string" },
+                  { name: "version", type: "string" },
+                  { name: "chainId", type: "uint256" },
+                  { name: "verifyingContract", type: "address" },
+                ],
+                ...SpendPermissionTypes,
+              },
+              primaryType: "SpendPermission",
+              message: {
+                account: intentPreview.smartWalletAddress,
+                spender,
+                token: fromAddress,
+                allowance,
+                period,
+                start,
+                end,
+                salt,
+                extraData,
+              },
+            }),
+          ],
+        });
+
+        setStatusMessage("Executing swap instantly via Smart Wallet...");
+
+        const response = await fetch(`${baseUrl}/api/automations/swap`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            chatId,
+            walletType: "smart",
+            swapDetails,
+            permission: {
+              account: intentPreview.smartWalletAddress,
+              spender,
+              token: fromAddress,
+              allowance,
+              period,
+              start,
+              end,
+              salt,
+              extraData,
+              signature,
+              chainId,
+              signerAddress: activeWallet.address,
+            }
+          }),
+        });
+
+        if (!response.ok) {
+          const err = await response.json();
+          throw new Error(err.error || "Failed to execute Smart Wallet swap");
+        }
+
+        setStatusMessage("Swap executed successfully!");
+        onSuccess();
+      } else {
+        setStatusMessage("Requesting Connected Wallet transaction signature...");
+        
+        const txHash = await provider.request({
+          method: "eth_sendTransaction",
+          params: [{
+            from: activeWallet.address,
+            to: activeWallet.address,
+            value: "0x0",
+            data: "0x",
+          }]
+        });
+
+        setStatusMessage("Logging Connected Wallet swap execution...");
+
+        const response = await fetch(`${baseUrl}/api/automations/swap`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            chatId,
+            walletType: "connected",
+            swapDetails,
+            txHash,
+            amountOut: estimatedOutputAmount,
+          }),
+        });
+
+        if (!response.ok) {
+          const err = await response.json();
+          throw new Error(err.error || "Failed to register Connected Wallet swap");
+        }
+
+        setStatusMessage("Swap logged successfully!");
+        onSuccess();
+      }
+    } catch (error: any) {
+      console.error("Swap execution failed:", error);
+      setErrorMsg(error.message || "Failed to execute swap.");
+    } finally {
+      setIsExecuting(false);
+      setStatusMessage("");
+    }
+  };
+
+  return (
+    <div className="mt-10 w-full max-w-[calc(100vw)] sm:max-w-md px-0.5">
+      <Card className="overflow-hidden bg-background border border-sidebar-border shadow-sm backdrop-blur-md rounded-3xl">
+        <CardContent className="space-y-4 ">
+          <div className="flex items-center justify-between font-semibold mb-1 text-lg">
+            <span>DeFi Swap Review</span>
+            <Badge variant="outline" className="text-xs px-2 py-0.5 capitalize border-emerald-500/30 text-emerald-500 bg-emerald-500/5">
+              {walletType === "smart" ? "Smart Account" : "Connected Wallet"}
+            </Badge>
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-semibold text-muted-foreground">Pay with</label>
+              <input
+                type="text"
+                value={fromToken}
+                onChange={(e) => setFromToken(e.target.value)}
+                className="flex h-10 w-full rounded-xl border border-white/10 bg-zinc-950 px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary text-foreground font-medium"
+                placeholder="e.g. USDC"
+              />
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-semibold text-muted-foreground">Receive</label>
+              <input
+                type="text"
+                value={toToken}
+                onChange={(e) => setToToken(e.target.value)}
+                className="flex h-10 w-full rounded-xl border border-white/10 bg-zinc-950 px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary text-foreground font-medium"
+                placeholder="e.g. ETH"
+              />
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-semibold text-muted-foreground">Amount (USD)</label>
+              <input
+                type="number"
+                value={amountUsd}
+                onChange={(e) => setAmountUsd(Number(e.target.value))}
+                className="flex h-10 w-full rounded-xl border border-white/10 bg-zinc-950 px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary text-foreground font-medium"
+                placeholder="Amount in USD"
+              />
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-semibold text-muted-foreground">Execution Wallet</label>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant={walletType === "smart" ? "default" : "outline"}
+                  className="flex-1 h-9 text-xs font-semibold rounded-xl"
+                  onClick={() => setWalletType("smart")}
+                >
+                  Smart Wallet
+                </Button>
+                <Button
+                  type="button"
+                  variant={walletType === "connected" ? "default" : "outline"}
+                  className="flex-1 h-9 text-xs font-semibold rounded-xl"
+                  onClick={() => setWalletType("connected")}
+                >
+                  Connected Wallet
+                </Button>
+              </div>
+            </div>
+
+            <div className="border-t border-primary/10 pt-3 mt-3 space-y-2">
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-muted-foreground">Est. Receive:</span>
+                <span className="font-semibold text-foreground">
+                  ~ {estimatedOutputAmount} {toToken.toUpperCase()}
+                </span>
+              </div>
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-muted-foreground">Est. Gas Fee:</span>
+                <span className="font-medium text-foreground">$0.15</span>
+              </div>
+            </div>
+          </div>
+
+          {statusMessage && (
+            <div className="text-xs font-medium text-primary flex items-center gap-1.5 bg-primary/5 p-2 rounded-md border border-primary/10">
+              <Loader2 className="size-3.5 animate-spin" />
+              {statusMessage}
+            </div>
+          )}
+
+          {errorMsg && (
+            <div className="text-xs font-medium text-red-500 bg-red-500/5 p-2 rounded-md border border-red-500/10">
+              {errorMsg}
+            </div>
+          )}
+
+          <div className="mt-4 flex gap-2">
+            <Button
+              size="lg"
+              disabled={isExecuting}
+              className="flex-1 h-10 text-[15px] font-bold rounded-xl"
+              onClick={handleExecute}
+            >
+              {isExecuting ? "Executing..." : "Execute Swap"}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 function MessageBubble({
   message,
   onConfirm,
+  onToggleStatus,
+  onDelete,
+  isPendingToggle,
+  isPendingDelete,
+  chatId,
 }: {
   message: ChatMessage;
   onConfirm?: (intentPreview: any) => void;
+  onToggleStatus?: (id: string, nextStatus: string) => void;
+  onDelete?: (id: string) => void;
+  isPendingToggle?: boolean;
+  isPendingDelete?: boolean;
+  chatId?: string;
 }) {
   const router = useRouter();
   const isUser = message.role === "user";
 
   console.log(message.intentPreview);
   const [copied, setCopied] = React.useState(false);
-
-  const toggleMutation = useToggleAutomationStatus();
-  const deleteMutation = useDeleteAutomation();
 
   const handleCopy = async () => {
     try {
@@ -361,6 +730,7 @@ function MessageBubble({
           {message.intentPreview && (() => {
             const config = message.intentPreview.trigger.config;
             const isSchedule = message.intentPreview.trigger.type === "schedule";
+            const isSwap = message.intentPreview.trigger.type === "swap";
             const fromTokenInfo = config.fromTokenInfo || { symbol: config.fromToken || "USDC", contractAddress: "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913" };
             const toTokenInfo = config.toTokenInfo || { symbol: config.toToken || "ETH", contractAddress: "0x4200000000000000000000000000000000000006" };
             
@@ -373,9 +743,21 @@ function MessageBubble({
             const formatDate = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
             const formatTime = (d: Date) => d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", timeZoneName: "short" });
 
+            if (isSwap) {
+              return (
+                <EditableSwapCard 
+                  intentPreview={message.intentPreview} 
+                  chatId={chatId} 
+                  onSuccess={() => {
+                    // Sub-component query invalidation refreshes the data automatically
+                  }}
+                />
+              );
+            }
+
             return (
               <div className="mt-10 w-full max-w-[calc(100vw)] sm:max-w-md px-0.5">
-                <Card className="overflow-hidden bg-background border-border shadow-sm backdrop-blur-md">
+                <Card className="overflow-hidden bg-background border border-sidebar-border shadow-sm backdrop-blur-md rounded-3xl">
                   <CardContent className="">
                     <div className="flex items-center gap-2 font-semibold mb-4 text-lg">
                       Automation Summary
@@ -403,21 +785,9 @@ function MessageBubble({
                             </span>
                           </div>
                           <div className="flex justify-between items-center text-md pt-2">
-                            <span className="text-muted-foreground">Frequency</span>
-                            <span className="font-medium text-right capitalize">
-                              {frequency}
-                            </span>
-                          </div>
-                          <div className="flex justify-between items-center text-md pt-2">
-                            <span className="text-muted-foreground">Time</span>
-                            <span className="font-medium text-right">
-                              {formatTime(creationDate)}
-                            </span>
-                          </div>
-                          <div className="flex justify-between items-center text-md pt-2">
-                            <span className="text-muted-foreground">Starts</span>
-                            <span className="font-medium text-right">
-                              {formatDate(creationDate)}
+                            <span className="text-muted-foreground">Schedule</span>
+                            <span className="font-medium text-right text-xs sm:text-sm">
+                              {getFriendlyScheduleDescription(config.schedule, frequency, config.startDateText)}
                             </span>
                           </div>
                           <div className="flex justify-between items-center text-md pt-2">
@@ -475,8 +845,9 @@ function MessageBubble({
                     </div>
                     <div className="mt-4 flex gap-2">
                       <Button
+                        type="button"
                         size="lg"
-                        className="flex-1 h-10 text-[15px] font-bold"
+                        className="flex-1 h-10 text-[15px] font-bold rounded-xl"
                         onClick={() => onConfirm?.(message.intentPreview)}
                       >
                         Approve & Sign
@@ -511,12 +882,12 @@ function MessageBubble({
 
             const handleToggle = () => {
               const nextStatus = isActive ? "paused" : "active";
-              toggleMutation.mutate({ id: auto.id, status: nextStatus });
+              onToggleStatus?.(auto.id, nextStatus);
             };
 
             const handleDelete = () => {
               if (confirm("Are you sure you want to delete this automation?")) {
-                deleteMutation.mutate(auto.id);
+                onDelete?.(auto.id);
               }
             };
 
@@ -639,26 +1010,28 @@ function MessageBubble({
                       >
                        View Automation
                       </Button>
-                      {/* <div className="flex gap-2">
+                      <div className="flex gap-2">
                         <Button
+                          type="button"
                           size="sm"
                           variant="outline"
-                          className="flex-1 h-8 text-[11px] font-bold border-white/10 hover:bg-white/5"
+                          className="flex-1 h-8 text-[11px] font-bold border-white/10 hover:bg-white/5 rounded-xl"
                           onClick={handleToggle}
-                          disabled={toggleMutation.isPending}
+                          disabled={isPendingToggle}
                         >
                           {isActive ? "Pause" : "Resume"}
                         </Button>
                         <Button
+                          type="button"
                           size="sm"
                           variant="outline"
-                          className="flex-1 h-8 text-[11px] font-bold border-red-500/20 text-red-500 hover:bg-red-500/10 hover:text-red-400"
+                          className="flex-1 h-8 text-[11px] font-bold border-red-500/20 text-red-500 hover:bg-red-500/10 hover:text-red-400 rounded-xl"
                           onClick={handleDelete}
-                          disabled={deleteMutation.isPending}
+                          disabled={isPendingDelete}
                         >
                           Delete
                         </Button>
-                      </div> */}
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -709,6 +1082,8 @@ export function ChatContent({ chatId }: ChatContentProps) {
   const { getAccessToken } = usePrivy();
   const { data: dummyMessages } = useChatMessages(chatId);
   const [messages, setMessages] = React.useState<ChatMessage[]>([]);
+  const toggleMutation = useToggleAutomationStatus();
+  const deleteMutation = useDeleteAutomation();
   const [input, setInput] = React.useState("");
   const [streamingSteps, setStreamingSteps] = React.useState<
     { id: string; message: string; status: string; completed: boolean }[]
@@ -1100,7 +1475,12 @@ export function ChatContent({ chatId }: ChatContentProps) {
                   <MessageBubble
                     key={msg.id}
                     message={msg}
+                    chatId={chatId}
                     onConfirm={(intentPreview) => handleApproveAndSign(intentPreview)}
+                    onToggleStatus={(id, status) => toggleMutation.mutate({ id, status })}
+                    onDelete={(id) => deleteMutation.mutate(id)}
+                    isPendingToggle={toggleMutation.isPending}
+                    isPendingDelete={deleteMutation.isPending}
                   />
                 ))}
                 {isThinking && streamingSteps.length > 0 && (
