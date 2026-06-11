@@ -382,7 +382,93 @@ export function useChatsList() {
       if (!res.ok) {
         throw new Error("Failed to fetch chats list");
       }
-      return res.json() as Promise<{ id: string; title: string; updatedAt: string }[]>;
+      return res.json() as Promise<{ id: string; title: string; customTitle?: boolean; updatedAt: string }[]>;
+    },
+  });
+}
+
+export function useRenameChat() {
+  const qc = useQueryClient();
+  const { getAccessToken } = usePrivy();
+
+  return useMutation({
+    mutationFn: async ({ id, title }: { id: string; title: string }) => {
+      const token = await getAccessToken();
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+      const res = await fetch(`${baseUrl}/api/chats/${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ title }),
+      });
+      if (!res.ok) {
+        throw new Error("Failed to rename chat");
+      }
+      return res.json() as Promise<{ id: string; title: string; customTitle: boolean; updatedAt: string }>;
+    },
+    onMutate: async ({ id, title }) => {
+      await qc.cancelQueries({ queryKey: ["chats-list"] });
+      const previousChats = qc.getQueryData<{ id: string; title: string; customTitle?: boolean; updatedAt: string }[]>(["chats-list"]);
+      if (previousChats) {
+        qc.setQueryData(
+          ["chats-list"],
+          previousChats.map((chat) =>
+            chat.id === id ? { ...chat, title, customTitle: true } : chat
+          )
+        );
+      }
+      return { previousChats };
+    },
+    onError: (err, variables, context) => {
+      if (context?.previousChats) {
+        qc.setQueryData(["chats-list"], context.previousChats);
+      }
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ["chats-list"] });
+    },
+  });
+}
+
+export function useDeleteChat() {
+  const qc = useQueryClient();
+  const { getAccessToken } = usePrivy();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const token = await getAccessToken();
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+      const res = await fetch(`${baseUrl}/api/chats/${id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (!res.ok) {
+        throw new Error("Failed to delete chat");
+      }
+      return res.json();
+    },
+    onMutate: async (id) => {
+      await qc.cancelQueries({ queryKey: ["chats-list"] });
+      const previousChats = qc.getQueryData<{ id: string; title: string; customTitle?: boolean; updatedAt: string }[]>(["chats-list"]);
+      if (previousChats) {
+        qc.setQueryData(
+          ["chats-list"],
+          previousChats.filter((chat) => chat.id !== id)
+        );
+      }
+      return { previousChats };
+    },
+    onError: (err, id, context) => {
+      if (context?.previousChats) {
+        qc.setQueryData(["chats-list"], context.previousChats);
+      }
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ["chats-list"] });
     },
   });
 }

@@ -30,6 +30,7 @@ import {
   ThumbsUp,
   ThumbsDown,
   Loader,
+  DollarSign,
 } from "lucide-react";
 import { AppShell } from "@/components/app/app-shell";
 import { Card, CardContent } from "@/components/ui/card";
@@ -139,7 +140,7 @@ interface ChatMessage {
 }
 
 const suggestionChips = [
-  { label: "Buy $100 ETH", icon: <TrendingUp className="size-3" /> },
+  { label: "Buy $100 ETH", icon: <DollarSign className="size-3" /> },
   { label: "Setup DCA", icon: <Zap className="size-3" /> },
   { label: "Swap USDC/ETH", icon: <ArrowRightLeft className="size-3" /> },
 ];
@@ -1037,7 +1038,7 @@ function MessageBubble({
                       </blockquote>
                     ),
                     code: ({ inline, className, children, ...props }: any) =>
-                      inline ? (
+                      !inline ? (
                         <code className="bg-foreground/5 text-primary font-mono text-xs px-1 py-0.5 rounded">
                           {children}
                         </code>
@@ -2017,9 +2018,9 @@ export function ChatContent({ chatId }: ChatContentProps) {
                 {suggestionChips.map((chip, i) => (
                   <Button
                     key={i}
-                    variant="outline"
+                    variant="secondary"
                     size="sm"
-                    className="h-10 md:h-9 rounded-xl bg-card/50 backdrop-blur-md border-border/50 hover:bg-primary/10 hover:text-primary hover:border-primary/50 transition-all gap-2"
+                    className="h-9 md:h-8 rounded-xl bg-card backdrop-blur-md border-border/50 transition-all gap-2"
                     onClick={() => handleSend(chip.label)}
                   >
                     <span className="text-primary">{chip.icon}</span>
@@ -2075,10 +2076,10 @@ export function ChatContent({ chatId }: ChatContentProps) {
               >
                 {suggestionChips.map((chip, i) => (
                   <Button
-                    key={i}
-                    variant="outline"
+                    key={i}  
+                    variant="secondary"
                     size="sm"
-                    className="h-10 md:h-9 rounded-xl bg-card/50 backdrop-blur-md border-border/50 hover:bg-primary/10 hover:text-primary hover:border-primary/50 transition-all gap-2"
+                    className="h-9 md:h-9 rounded-xl bg-card backdrop-blur-md border-border/50 transition-all gap-2"
                     onClick={() => handleSend(chip.label)}
                   >
                     <span className="text-primary">{chip.icon}</span>

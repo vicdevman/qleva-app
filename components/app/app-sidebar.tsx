@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { usePrivy } from "@privy-io/react-auth";
 import {
   LayoutDashboard,
@@ -24,6 +24,7 @@ import {
   Sun,
   Search,
   History,
+  MoreVertical,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import {
@@ -40,6 +41,7 @@ import {
   SidebarFooter,
   useSidebar,
   SidebarTrigger,
+  SidebarMenuAction,
 } from "@/components/ui/sidebar";
 import {
   DropdownMenu,
@@ -49,13 +51,21 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { useUIStore } from "@/stores/ui-store";
 import Image from "next/image";
 import { Button } from "../ui/button";
 import { Facehash } from "facehash";
-import { useChatsList } from "@/lib/query-hooks";
+import { useChatsList, useRenameChat, useDeleteChat } from "@/lib/query-hooks";
 
 const mainNav = [
   { title: "New chat", url: "/chat", icon: MessageCirclePlus },
@@ -113,6 +123,52 @@ export function AppSidebar() {
 
   const { data: chats = [], isLoading } = useChatsList();
   const { toggleCommandBar } = useUIStore();
+
+  const router = useRouter();
+  const renameChatMutation = useRenameChat();
+  const deleteChatMutation = useDeleteChat();
+
+  const [editingChatId, setEditingChatId] = React.useState<string | null>(null);
+  const [editTitle, setEditTitle] = React.useState("");
+  const [deleteConfirmChatId, setDeleteConfirmChatId] = React.useState<string | null>(null);
+  const inputRef = React.useRef<HTMLInputElement>(null);
+  const isEscapePressed = React.useRef(false);
+
+  React.useEffect(() => {
+    if (editingChatId && inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
+  }, [editingChatId]);
+
+  const handleSaveRename = async (chatId: string) => {
+    const trimmed = editTitle.trim();
+    if (!trimmed || trimmed === chats.find(c => c.id === chatId)?.title) {
+      setEditingChatId(null);
+      return;
+    }
+    try {
+      await renameChatMutation.mutateAsync({ id: chatId, title: trimmed });
+    } catch (err) {
+      console.error("Failed to rename chat:", err);
+    } finally {
+      setEditingChatId(null);
+    }
+  };
+
+  const handleDeleteChat = async (chatId: string) => {
+    try {
+      await deleteChatMutation.mutateAsync(chatId);
+      const activeUrl = `/chat/${chatId}`;
+      if (pathname === activeUrl) {
+        router.push("/chat");
+      }
+    } catch (err) {
+      console.error("Failed to delete chat:", err);
+    } finally {
+      setDeleteConfirmChatId(null);
+    }
+  };
 
   return (
     <Sidebar
@@ -252,17 +308,77 @@ export function AppSidebar() {
                   chats.map((chat) => {
                     const url = `/chat/${chat.id}`;
                     const isActive = pathname === url;
+                    const isEditing = editingChatId === chat.id;
+
+                    if (isEditing) {
+                      return (
+                        <SidebarMenuItem key={chat.id}>
+                          <div className="flex h-8 w-full items-center gap-2 overflow-hidden rounded-md px-2 py-1 text-left text-sm bg-sidebar-accent border border-primary/30">
+                            <input
+                              ref={inputRef}
+                              value={editTitle}
+                              onChange={(e) => setEditTitle(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  handleSaveRename(chat.id);
+                                } else if (e.key === "Escape") {
+                                  isEscapePressed.current = true;
+                                  setEditingChatId(null);
+                                }
+                              }}
+                              onBlur={() => {
+                                if (!isEscapePressed.current) {
+                                  handleSaveRename(chat.id);
+                                }
+                              }}
+                              className="w-full bg-transparent border-none outline-none focus:outline-none focus:ring-0 p-0 text-sm font-medium text-foreground animate-in fade-in duration-150"
+                            />
+                          </div>
+                        </SidebarMenuItem>
+                      );
+                    }
+
                     return (
                       <SidebarMenuItem key={chat.id}>
                         <SidebarMenuButton
                           asChild
                           isActive={isActive}
                           tooltip={chat.title}
+                          className="pr-8 group-hover/menu-item:pr-8"
                         >
                           <Link href={url}>
                             <span className="truncate">{chat.title}</span>
                           </Link>
                         </SidebarMenuButton>
+                        <DropdownMenu modal={false}>
+                          <DropdownMenuTrigger asChild>
+                            <SidebarMenuAction showOnHover>
+                              <MoreVertical className="size-4" />
+                              <span className="sr-only">More</span>
+                            </SidebarMenuAction>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent side="right" align="start">
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditTitle(chat.title);
+                                isEscapePressed.current = false;
+                                setEditingChatId(chat.id);
+                              }}
+                            >
+                              <span>Rename</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="text-destructive focus:text-destructive"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDeleteConfirmChatId(chat.id);
+                              }}
+                            >
+                              <span>Delete</span>
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </SidebarMenuItem>
                     );
                   })
@@ -382,6 +498,45 @@ export function AppSidebar() {
           </DropdownMenuContent>
         </DropdownMenu>
       </SidebarFooter>
+
+      <Dialog
+        open={deleteConfirmChatId !== null}
+        onOpenChange={(open) => {
+          if (!open) setDeleteConfirmChatId(null);
+        }}
+      >
+        <DialogContent className="max-w-[360px] p-5 rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-semibold text-foreground">
+              Delete Conversation?
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground mt-2">
+              This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-6 flex flex-row justify-end gap-2 border-t-0 p-0 bg-transparent">
+            <Button
+              variant="outline"
+              onClick={() => setDeleteConfirmChatId(null)}
+              className="rounded-xl px-4 py-2 text-sm font-medium"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                if (deleteConfirmChatId) {
+                  handleDeleteChat(deleteConfirmChatId);
+                }
+              }}
+              disabled={deleteChatMutation.isPending}
+              className="rounded-xl px-4 py-2 text-sm font-medium bg-red-600 hover:bg-red-700 text-white"
+            >
+              {deleteChatMutation.isPending ? "Deleting..." : "Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Sidebar>
   );
 }
