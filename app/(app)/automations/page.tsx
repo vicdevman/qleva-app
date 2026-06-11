@@ -68,9 +68,11 @@ const TokenBadge = ({ tokenInfo }: { tokenInfo: any }) => {
   if (!tokenInfo) return null;
   const symbol = tokenInfo.symbol || "USDC";
   const address = tokenInfo.contractAddress || "";
-  const logoUrl = tokenInfo.logoUrl || (symbol === "ETH" 
-    ? "https://dd.dexscreener.com/ds-data/tokens/base/0x4200000000000000000000000000000000000006.png" 
-    : "https://dd.dexscreener.com/ds-data/tokens/base/0x833589fcd6edb6e08f4c7c32d4f71b54bda02913.png");
+  const logoUrl = tokenInfo.logoUrl || (symbol === "ETH"
+    ? "https://dd.dexscreener.com/ds-data/tokens/base/0x4200000000000000000000000000000000000006.png"
+    : symbol === "USDC"
+      ? "https://dd.dexscreener.com/ds-data/tokens/base/0x833589fcd6edb6e08f4c7c32d4f71b54bda02913.png"
+      : "/Base_square_blue.png");
 
   const url = address ? `https://dexscreener.com/base/${address}` : `https://dexscreener.com/search?q=${symbol}`;
 
@@ -81,6 +83,9 @@ const TokenBadge = ({ tokenInfo }: { tokenInfo: any }) => {
           src={logoUrl}
           alt=""
           className="size-3.5 rounded-full object-cover border border-white/5"
+          onError={(e) => {
+            (e.target as HTMLImageElement).src = "/Base_square_blue.png";
+          }}
         />
       )}
       <a
@@ -139,11 +144,11 @@ function AutomationCard({ automation }: { automation: any }) {
         )}
         onClick={() => router.push(`/automations/${automation.id}`)}
       >
-        <CardContent className="p-5 space-y-4">
+        <CardContent className="space-y-4">
           {/* Header */}
           <div className="flex justify-between items-center pb-2 border-b border-border/30">
             <h3 className="font-heading text-sm font-bold tracking-tight text-foreground/90">
-              {isSchedule 
+              {isSchedule
                 ? (config.schedule?.mode === "once" ? "One-Time Scheduled Swap" : "Recurring Swap Strategy")
                 : "Price Condition Trigger"
               }
@@ -161,7 +166,7 @@ function AutomationCard({ automation }: { automation: any }) {
 
           {/* Details list */}
           <div className="space-y-2.5">
-            <div className="flex justify-between items-center text-xs border-b border-border/30 pb-2.5">
+            <div className="flex justify-between items-center text-sm border-b border-border/30 pb-2.5">
               <span className="text-muted-foreground">Token Path</span>
               <span className="flex items-center gap-1.5">
                 <TokenBadge tokenInfo={fromTokenInfo} />
@@ -170,20 +175,20 @@ function AutomationCard({ automation }: { automation: any }) {
               </span>
             </div>
 
-            <div className="flex justify-between items-center text-xs border-b border-border/30 pb-2.5">
+            <div className="flex justify-between items-center text-sm border-b border-border/30 pb-2.5">
               <span className="text-muted-foreground">Execution Trade Size</span>
               <span className="font-semibold text-emerald-500">{formatCurrency(amountUsd)}</span>
             </div>
 
             {isSchedule ? (
               <>
-                <div className="flex justify-between items-center text-xs border-b border-border/30 pb-2.5">
+                <div className="flex justify-between items-center text-sm border-b border-border/30 pb-2.5">
                   <span className="text-muted-foreground">Schedule</span>
                   <span className="font-medium capitalize">
                     {getFriendlyScheduleDescription(config.schedule, frequency, config.startDateText)}
                   </span>
                 </div>
-                <div className="flex justify-between items-center text-xs border-b border-border/30 pb-2.5">
+                <div className="flex justify-between items-center text-sm border-b border-border/30 pb-2.5">
                   <span className="text-muted-foreground">Ends</span>
                   <span className="font-medium flex items-center gap-1">
                     <Calendar className="size-3 text-muted-foreground" />
@@ -193,17 +198,17 @@ function AutomationCard({ automation }: { automation: any }) {
               </>
             ) : (
               <>
-                <div className="flex justify-between items-center text-xs border-b border-border/30 pb-2.5">
+                <div className="flex justify-between items-center text-sm border-b border-border/30 pb-2.5">
                   <span className="text-muted-foreground">Trigger Condition</span>
                   <span className="font-medium text-right capitalize">
                     {config.conditionType?.split("_").join(" ") || "Drops below"} ${config.targetValue}
                   </span>
                 </div>
-                <div className="flex justify-between items-center text-xs border-b border-border/30 pb-2.5">
+                <div className="flex justify-between items-center text-sm border-b border-border/30 pb-2.5">
                   <span className="text-muted-foreground">Starts</span>
                   <span className="font-medium">{formatDate(creationDate)}</span>
                 </div>
-                <div className="flex justify-between items-center text-xs border-b border-border/30 pb-2.5">
+                <div className="flex justify-between items-center text-sm border-b border-border/30 pb-2.5">
                   <span className="text-muted-foreground">Ends</span>
                   <span className="font-medium flex items-center gap-1">
                     <Calendar className="size-3 text-muted-foreground" />
@@ -213,7 +218,7 @@ function AutomationCard({ automation }: { automation: any }) {
               </>
             )}
 
-            <div className="flex justify-between items-center text-xs border-b border-border/30 pb-2.5">
+            <div className="flex justify-between items-center text-sm border-b border-border/30 pb-2.5">
               <span className="text-muted-foreground">Next Execution</span>
               <span className="font-medium flex items-center gap-1">
                 <Clock className="size-3 text-primary" />
@@ -221,12 +226,12 @@ function AutomationCard({ automation }: { automation: any }) {
               </span>
             </div>
 
-            <div className="flex justify-between items-center text-xs border-b border-border/30 pb-2.5">
+            <div className="flex justify-between items-center text-sm border-b border-border/30 pb-2.5">
               <span className="text-muted-foreground">Runs</span>
               <span className="font-medium">{currentRuns}</span>
             </div>
 
-            <div className="flex justify-between items-center text-xs pb-0.5">
+            <div className="flex justify-between items-center text-sm pb-0.5">
               <span className="text-muted-foreground">Volume</span>
               <span className="font-semibold text-emerald-500">{formatCurrency(volume)}</span>
             </div>
@@ -237,25 +242,25 @@ function AutomationCard({ automation }: { automation: any }) {
             <Button
               size="sm"
               variant="outline"
-              className="flex-1 h-9 text-xs font-bold border-white/10 hover:bg-white/5"
+              className="flex-1 h-9 text-sm font-bold border-white/10 hover:bg-white/5"
               onClick={handleToggle}
               disabled={toggleMutation.isPending}
             >
               {isActive ? <Pause className="size-3.5 mr-1.5" /> : <Play className="size-3.5 mr-1.5" />}
               {isActive ? "Pause" : "Resume"}
             </Button>
-            <Button
+            {/* <Button
               size="sm"
               variant="outline"
-              className="h-9 px-3 text-xs font-bold border-red-500/20 text-red-500 hover:bg-red-500/10 hover:text-red-400"
+              className="h-9 px-3 text-sm font-bold border-red-500/20 text-red-500 hover:bg-red-500/10 hover:text-red-400"
               onClick={handleDelete}
               disabled={deleteMutation.isPending}
             >
               <Trash2 className="size-3.5" />
-            </Button>
+            </Button> */}
             <Button
               size="sm"
-              className="flex-1 h-9 text-xs font-bold bg-primary/10 hover:bg-primary/20 text-primary border border-primary/10"
+              className="flex-1 h-9 text-sm font-bold bg-primary/10 hover:bg-primary/20 text-primary border border-primary/10"
               onClick={(e) => {
                 e.stopPropagation();
                 router.push(`/automations/${automation.id}`);
@@ -272,7 +277,7 @@ function AutomationCard({ automation }: { automation: any }) {
 
 function AutomationsContent() {
   const { data: automations, isLoading } = useAutomations();
-  
+
   const activeCount =
     automations?.filter((a: any) => a.status === "active").length ?? 0;
 

@@ -47,9 +47,11 @@ const TokenBadge = ({ tokenInfo }: { tokenInfo: any }) => {
   if (!tokenInfo) return null;
   const symbol = tokenInfo.symbol || "USDC";
   const address = tokenInfo.contractAddress || "";
-  const logoUrl = tokenInfo.logoUrl || (symbol === "ETH" 
-    ? "https://dd.dexscreener.com/ds-data/tokens/base/0x4200000000000000000000000000000000000006.png" 
-    : "https://dd.dexscreener.com/ds-data/tokens/base/0x833589fcd6edb6e08f4c7c32d4f71b54bda02913.png");
+  const logoUrl = tokenInfo.logoUrl || (symbol === "ETH"
+    ? "https://dd.dexscreener.com/ds-data/tokens/base/0x4200000000000000000000000000000000000006.png"
+    : symbol === "USDC"
+      ? "https://dd.dexscreener.com/ds-data/tokens/base/0x833589fcd6edb6e08f4c7c32d4f71b54bda02913.png"
+      : "/Base_square_blue.png");
 
   const url = address ? `https://dexscreener.com/base/${address}` : `https://dexscreener.com/search?q=${symbol}`;
 
@@ -60,6 +62,9 @@ const TokenBadge = ({ tokenInfo }: { tokenInfo: any }) => {
           src={logoUrl}
           alt=""
           className="size-4 rounded-full object-cover border border-white/5"
+          onError={(e) => {
+            (e.target as HTMLImageElement).src = "/Base_square_blue.png";
+          }}
         />
       )}
       <a
@@ -130,7 +135,7 @@ export default function AutomationDetailsPage() {
   const config = automation.trigger?.config || {};
   const fromTokenInfo = config.fromTokenInfo || { symbol: config.fromToken || "USDC" };
   const toTokenInfo = config.toTokenInfo || { symbol: config.toToken || "ETH" };
-  
+
   const handleToggle = () => {
     const nextStatus = isActive ? "paused" : "active";
     toggleMutation.mutate({ id, status: nextStatus });
@@ -157,7 +162,7 @@ export default function AutomationDetailsPage() {
           >
             <ArrowLeft className="size-3.5" /> Back to Automations
           </button>
-          
+
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <span className="flex items-center gap-3 flex-wrap">
@@ -189,7 +194,7 @@ export default function AutomationDetailsPage() {
               <CardContent className="space-y-6">
                 <div>
                   <h3 className="font-heading text-md font-semibold mb-4 text-foreground/80">Strategy Information</h3>
-                  
+
                   <div className="space-y-4">
                     {/* ID */}
                     {/* <div className="flex justify-between items-center text-sm border-b border-border/40 pb-3">
@@ -210,7 +215,7 @@ export default function AutomationDetailsPage() {
                     <div className="flex justify-between items-center text-sm border-b border-border/40 pb-3">
                       <span className="text-muted-foreground">Strategy Type</span>
                       <span className="font-medium capitalize">
-                        {isSchedule 
+                        {isSchedule
                           ? (config.schedule?.mode === "once" ? "One-Time Scheduled Swap" : "Recurring Swap Strategy")
                           : "Price Limit Trigger"
                         }
@@ -343,10 +348,10 @@ export default function AutomationDetailsPage() {
                       const isCompleted = exec.status === "completed";
                       const isFailed = exec.status === "failed";
                       const isExecuting = exec.status === "executing";
-                      
+
                       const chainId = automation.permission?.chainId || 84532;
-                      const explorerUrl = chainId === 8453 
-                        ? `https://basescan.org/tx/${exec.txHash}` 
+                      const explorerUrl = chainId === 8453
+                        ? `https://basescan.org/tx/${exec.txHash}`
                         : `https://sepolia.basescan.org/tx/${exec.txHash}`;
 
                       return (
@@ -359,7 +364,7 @@ export default function AutomationDetailsPage() {
                               {isCompleted && <CheckCircle2 className="size-5 text-green-500" />}
                               {isFailed && <XCircle className="size-5 text-red-500" />}
                               {isExecuting && <Loader2 className="size-5 text-blue-500 animate-spin" />}
-                              
+
                               <div>
                                 <span className="flex items-center gap-2">
                                   <span className="font-semibold text-sm capitalize">Run {exec.attempts}</span>

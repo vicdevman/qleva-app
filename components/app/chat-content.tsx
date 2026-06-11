@@ -29,25 +29,33 @@ import {
   Check,
   ThumbsUp,
   ThumbsDown,
+  Loader,
 } from "lucide-react";
 import { AppShell } from "@/components/app/app-shell";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { useChatMessages, useSendMessage, useToggleAutomationStatus, useDeleteAutomation } from "@/lib/query-hooks";
+import { useChatMessages, useSendMessage, useToggleAutomationStatus, useDeleteAutomation, usePortfolio } from "@/lib/query-hooks";
 import { useQueryClient } from "@tanstack/react-query";
 import { usePrivy, useWallets } from "@privy-io/react-auth";
 import { parseUnits } from "viem";
 import { cn, getFriendlyScheduleDescription } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useWalletStore } from "@/stores/wallet-store";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const TokenLink = ({ tokenInfo }: { tokenInfo: any }) => {
   const symbol = tokenInfo?.symbol || "USDC";
   const address = tokenInfo?.contractAddress || tokenInfo?.address || "";
   const chainId = "base";
   const url = address ? `https://dexscreener.com/${chainId}/${address}` : `https://dexscreener.com/search?q=${symbol}`;
-  
+
   return (
     <a
       href={url}
@@ -62,18 +70,26 @@ const TokenLink = ({ tokenInfo }: { tokenInfo: any }) => {
 
 const TokenBadge = ({ tokenInfo }: { tokenInfo: any }) => {
   if (!tokenInfo) return null;
-  const logoUrl = tokenInfo.logoUrl;
+  const symbol = tokenInfo.symbol || "USDC";
+  const logoUrl = tokenInfo.logoUrl || (symbol.toUpperCase() === "ETH"
+    ? "https://dd.dexscreener.com/ds-data/tokens/base/0x4200000000000000000000000000000000000006.png"
+    : symbol.toUpperCase() === "USDC"
+      ? "https://dd.dexscreener.com/ds-data/tokens/base/0x833589fcd6edb6e08f4c7c32d4f71b54bda02913.png"
+      : "/Base_square_blue.png");
   return (
     <span className="inline-flex items-center gap-1.5 align-middle">
-       <TokenLink tokenInfo={tokenInfo} />
+      <TokenLink tokenInfo={tokenInfo} />
       {logoUrl && (
         <img
           src={logoUrl}
           alt=""
           className="size-5 p-0.5 object-cover border border-white/10"
+          onError={(e) => {
+            (e.target as HTMLImageElement).src = "/Base_square_blue.png";
+          }}
         />
       )}
-     
+
     </span>
   );
 };
@@ -147,23 +163,153 @@ interface EditableSwapCardProps {
   onSuccess: () => void;
 }
 
+interface TokenInfo {
+  symbol: string;
+  contractAddress: string;
+  decimals: number;
+  logoUrl?: string;
+  priceUsd?: number;
+  name?: string;
+}
+
+const fallbackBaseLogo = "/Base_square_blue.png";
+
+const POPULAR_TOKENS: TokenInfo[] = [
+  {
+    symbol: "ETH",
+    name: "Ethereum",
+    contractAddress: "0x4200000000000000000000000000000000000006",
+    decimals: 18,
+    logoUrl: "https://dd.dexscreener.com/ds-data/tokens/base/0x4200000000000000000000000000000000000006.png",
+    priceUsd: 3500.0,
+  },
+  {
+    symbol: "USDC",
+    name: "USD Coin",
+    contractAddress: "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    decimals: 6,
+    logoUrl: "https://dd.dexscreener.com/ds-data/tokens/base/0x833589fcd6edb6e08f4c7c32d4f71b54bda02913.png",
+    priceUsd: 1.0,
+  },
+  {
+    symbol: "USDT",
+    name: "Tether",
+    contractAddress: "0x50c5725949a6f0c72e6c4a641f24029a262da18a",
+    decimals: 6,
+    logoUrl: "https://dd.dexscreener.com/ds-data/tokens/base/0x50c5725949a6f0c72e6c4a641f24029a262da18a.png",
+    priceUsd: 1.0,
+  },
+  {
+    symbol: "WBTC",
+    name: "Wrapped BTC",
+    contractAddress: "0x03c6b2015b50c0c6e83863d0246a48235272a088",
+    decimals: 8,
+    logoUrl: "https://dd.dexscreener.com/ds-data/tokens/base/0x03c6b2015b50c0c6e83863d0246a48235272a088.png",
+    priceUsd: 68000.0,
+  },
+  {
+    symbol: "DEGEN",
+    name: "Degen",
+    contractAddress: "0x4ed4e862860bed51a9570b96d89af5e1b0efefed",
+    decimals: 18,
+    logoUrl: "https://dd.dexscreener.com/ds-data/tokens/base/0x4ed4e862860bed51a9570b96d89af5e1b0efefed.png",
+  }
+];
+
+const fetchTokenPrice = async (address: string): Promise<number | null> => {
+  try {
+    const res = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${address}`);
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (data?.pairs?.length) {
+      const basePair = data.pairs.find((p: any) => p.chainId === "base") || data.pairs[0];
+      return basePair.priceUsd ? Number(basePair.priceUsd) : null;
+    }
+  } catch (e) {
+    console.error("Error fetching price for token", address, e);
+  }
+  return null;
+};
+
+const searchTokens = async (query: string): Promise<TokenInfo[]> => {
+  if (!query) return [];
+  try {
+    const res = await fetch(`https://api.dexscreener.com/latest/dex/search?q=${encodeURIComponent(query)}`);
+    if (!res.ok) return [];
+    const data = await res.json();
+    if (!data?.pairs) return [];
+
+    // Filter pairs on Base chain
+    const basePairs = data.pairs.filter((p: any) => p.chainId === "base");
+    const tokensMap = new Map<string, TokenInfo>();
+
+    for (const pair of basePairs) {
+      if (pair.baseToken) {
+        const addr = pair.baseToken.address.toLowerCase();
+        if (!tokensMap.has(addr)) {
+          tokensMap.set(addr, {
+            symbol: pair.baseToken.symbol.toUpperCase(),
+            name: pair.baseToken.name,
+            contractAddress: pair.baseToken.address,
+            logoUrl: pair.info?.imageUrl,
+            priceUsd: pair.priceUsd ? Number(pair.priceUsd) : undefined,
+            decimals: addr === "0x4200000000000000000000000000000000000006" ? 18 : (addr === "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913" ? 6 : 18)
+          });
+        }
+      }
+      if (pair.quoteToken) {
+        const addr = pair.quoteToken.address.toLowerCase();
+        if (!tokensMap.has(addr)) {
+          tokensMap.set(addr, {
+            symbol: pair.quoteToken.symbol.toUpperCase(),
+            name: pair.quoteToken.name,
+            contractAddress: pair.quoteToken.address,
+            logoUrl: pair.info?.imageUrl,
+            priceUsd: undefined,
+            decimals: addr === "0x4200000000000000000000000000000000000006" ? 18 : (addr === "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913" ? 6 : 18)
+          });
+        }
+      }
+    }
+    return Array.from(tokensMap.values()).slice(0, 20);
+  } catch (e) {
+    console.error(e);
+    return [];
+  }
+};
+
 export function EditableSwapCard({ intentPreview, chatId, onSuccess }: EditableSwapCardProps) {
   const config = intentPreview.trigger?.config || {};
   const { wallets } = useWallets();
   const { getAccessToken } = usePrivy();
   const queryClient = useQueryClient();
+  const { data: portfolio } = usePortfolio();
 
-  const [fromToken, setFromToken] = React.useState(config.fromToken || "USDC");
-  const [toToken, setToToken] = React.useState(config.toToken || "ETH");
-  const [amountUsd, setAmountUsd] = React.useState(config.amountUsd || 10);
-  const [walletType, setWalletType] = React.useState<"smart" | "connected">(config.walletType || "smart");
-  
-  const [isExecuting, setIsExecuting] = React.useState(false);
-  const [statusMessage, setStatusMessage] = React.useState("");
-  const [errorMsg, setErrorMsg] = React.useState("");
+  const [fromToken, setFromToken] = React.useState<TokenInfo>({
+    symbol: config.fromTokenInfo?.symbol || config.fromToken || "USDC",
+    contractAddress: config.fromTokenInfo?.contractAddress || resolveTokenAddress(config.fromToken || "USDC"),
+    decimals: config.fromTokenInfo?.decimals || (config.fromToken?.toLowerCase() === "eth" ? 18 : 6),
+    logoUrl: config.fromTokenInfo?.logoUrl || (config.fromToken?.toLowerCase() === "eth"
+      ? "https://dd.dexscreener.com/ds-data/tokens/base/0x4200000000000000000000000000000000000006.png"
+      : config.fromToken?.toLowerCase() === "usdc"
+        ? "https://dd.dexscreener.com/ds-data/tokens/base/0x833589fcd6edb6e08f4c7c32d4f71b54bda02913.png"
+        : undefined),
+    priceUsd: config.fromTokenInfo?.priceUsd || undefined,
+    name: config.fromTokenInfo?.name || config.fromToken || "USD Coin",
+  });
 
-  const fromTokenInfo = config.fromTokenInfo || { symbol: fromToken };
-  const toTokenInfo = config.toTokenInfo || { symbol: toToken };
+  const [toToken, setToToken] = React.useState<TokenInfo>({
+    symbol: config.toTokenInfo?.symbol || config.toToken || "ETH",
+    contractAddress: config.toTokenInfo?.contractAddress || resolveTokenAddress(config.toToken || "ETH"),
+    decimals: config.toTokenInfo?.decimals || (config.toToken?.toLowerCase() === "eth" ? 18 : 6),
+    logoUrl: config.toTokenInfo?.logoUrl || (config.toToken?.toLowerCase() === "eth"
+      ? "https://dd.dexscreener.com/ds-data/tokens/base/0x4200000000000000000000000000000000000006.png"
+      : config.toToken?.toLowerCase() === "usdc"
+        ? "https://dd.dexscreener.com/ds-data/tokens/base/0x833589fcd6edb6e08f4c7c32d4f71b54bda02913.png"
+        : undefined),
+    priceUsd: config.toTokenInfo?.priceUsd || undefined,
+    name: config.toTokenInfo?.name || config.toToken || "Ethereum",
+  });
 
   const defaultPrices: Record<string, number> = {
     usdc: 1.0,
@@ -177,14 +323,110 @@ export function EditableSwapCard({ intentPreview, chatId, onSuccess }: EditableS
 
   const getPrice = (symbol: string, info: any) => {
     const sym = symbol.toLowerCase();
-    if (info && info.symbol?.toLowerCase() === sym && info.priceUsd) {
+    if (info && info.priceUsd) {
       return info.priceUsd;
     }
     return defaultPrices[sym] || 1.0;
   };
 
-  const toPrice = getPrice(toToken, toTokenInfo);
-  const estimatedOutputAmount = (amountUsd / toPrice).toFixed(4);
+  const fromTokenPrice = fromToken.priceUsd || getPrice(fromToken.symbol, fromToken);
+  const toTokenPrice = toToken.priceUsd || getPrice(toToken.symbol, toToken);
+
+  const [fromAmount, setFromAmount] = React.useState<string>(
+    config.amountUsd ? (config.amountUsd / fromTokenPrice).toFixed(4) : "10"
+  );
+  const [walletType, setWalletType] = React.useState<"smart" | "connected">(config.walletType || "smart");
+
+  const [isExecuting, setIsExecuting] = React.useState(false);
+  const [statusMessage, setStatusMessage] = React.useState("");
+  const [errorMsg, setErrorMsg] = React.useState("");
+
+  // Search Dialog States
+  const [activeSelector, setActiveSelector] = React.useState<"from" | "to" | null>(null);
+  const [searchQuery, setSearchQuery] = React.useState("");
+  const [searchResults, setSearchResults] = React.useState<TokenInfo[]>([]);
+  const [isSearching, setIsSearching] = React.useState(false);
+
+  // Fetch prices on load if not present
+  React.useEffect(() => {
+    const loadPrices = async () => {
+      if (!fromToken.priceUsd) {
+        const p = await fetchTokenPrice(fromToken.contractAddress);
+        if (p) setFromToken(prev => ({ ...prev, priceUsd: p }));
+      }
+      if (!toToken.priceUsd) {
+        const p = await fetchTokenPrice(toToken.contractAddress);
+        if (p) setToToken(prev => ({ ...prev, priceUsd: p }));
+      }
+    };
+    loadPrices();
+  }, [fromToken.contractAddress, toToken.contractAddress]);
+
+  // DexScreener search effect
+  React.useEffect(() => {
+    if (!searchQuery) {
+      setSearchResults([]);
+      return;
+    }
+    const delayDebounce = setTimeout(async () => {
+      setIsSearching(true);
+      const results = await searchTokens(searchQuery);
+      setSearchResults(results);
+      setIsSearching(false);
+    }, 450);
+    return () => clearTimeout(delayDebounce);
+  }, [searchQuery]);
+
+  // Wallet Awareness
+  const hasSmartWallet = !!intentPreview.smartWalletAddress;
+  const hasConnectedWallet = wallets && wallets.length > 0;
+
+  React.useEffect(() => {
+    if (walletType === "smart" && !hasSmartWallet && hasConnectedWallet) {
+      setWalletType("connected");
+    } else if (walletType === "connected" && !hasConnectedWallet && hasSmartWallet) {
+      setWalletType("smart");
+    }
+  }, [hasSmartWallet, hasConnectedWallet, walletType]);
+
+  // Available balance
+  const balanceAsset = portfolio?.topAssets?.find(
+    (a: any) => a.symbol?.toUpperCase() === fromToken.symbol?.toUpperCase()
+  );
+  const availableBalance = balanceAsset ? balanceAsset.balance : 0;
+
+  const amountUsd = parseFloat(fromAmount) * fromTokenPrice || 0;
+  const estimatedOutputAmount = toTokenPrice > 0 ? (amountUsd / toTokenPrice) : 0;
+
+  const handleMax = () => {
+    if (availableBalance > 0) {
+      setFromAmount(availableBalance.toString());
+    }
+  };
+
+  const handleSwapTokens = () => {
+    const temp = fromToken;
+    setFromToken(toToken);
+    setToToken(temp);
+    if (estimatedOutputAmount > 0) {
+      setFromAmount(estimatedOutputAmount.toFixed(4));
+    }
+  };
+
+  const handleSelectToken = async (token: TokenInfo) => {
+    let price = token.priceUsd;
+    if (!price) {
+      price = await fetchTokenPrice(token.contractAddress) || 1.0;
+    }
+    const tokenWithPrice = { ...token, priceUsd: price };
+    if (activeSelector === "from") {
+      setFromToken(tokenWithPrice);
+    } else {
+      setToToken(tokenWithPrice);
+    }
+    setActiveSelector(null);
+    setSearchQuery("");
+  };
 
   const handleExecute = async () => {
     if (isExecuting) return;
@@ -194,8 +436,8 @@ export function EditableSwapCard({ intentPreview, chatId, onSuccess }: EditableS
 
     try {
       const activeWallet = wallets.find((w) => w.walletClientType === "privy") ||
-                           wallets.find((w) => w.walletClientType === "coinbase_wallet") ||
-                           wallets[0];
+        wallets.find((w) => w.walletClientType === "coinbase_wallet") ||
+        wallets[0];
 
       if (!activeWallet) {
         throw new Error("No active wallet connected. Please connect a wallet first.");
@@ -205,31 +447,28 @@ export function EditableSwapCard({ intentPreview, chatId, onSuccess }: EditableS
       const token = await getAccessToken();
       const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
-      const fromAddress = resolveTokenAddress(fromToken);
-      const toAddress = resolveTokenAddress(toToken);
-
       const swapDetails = {
         fromToken: {
-          contractAddress: fromAddress,
-          symbol: fromToken.toUpperCase(),
-          decimals: fromToken.toLowerCase() === "eth" ? 18 : 6,
-          name: fromToken.toUpperCase(),
-          priceUsd: getPrice(fromToken, fromTokenInfo)
+          contractAddress: fromToken.contractAddress,
+          symbol: fromToken.symbol.toUpperCase(),
+          decimals: fromToken.decimals,
+          name: fromToken.name || fromToken.symbol.toUpperCase(),
+          priceUsd: fromTokenPrice
         },
         toToken: {
-          contractAddress: toAddress,
-          symbol: toToken.toUpperCase(),
-          decimals: toToken.toLowerCase() === "eth" ? 18 : 6,
-          name: toToken.toUpperCase(),
-          priceUsd: toPrice
+          contractAddress: toToken.contractAddress,
+          symbol: toToken.symbol.toUpperCase(),
+          decimals: toToken.decimals,
+          name: toToken.name || toToken.symbol.toUpperCase(),
+          priceUsd: toTokenPrice
         },
         amountUsd
       };
 
       if (walletType === "smart") {
         setStatusMessage("Requesting Smart Wallet Spend Permission signature...");
-        
-        const allowance = parseUnits(amountUsd.toString(), fromToken.toLowerCase() === "eth" ? 18 : 6).toString();
+
+        const allowance = parseUnits(fromAmount, fromToken.decimals).toString();
         const period = 86400; // 1 day
         const start = Math.floor(Date.now() / 1000);
         const end = start + 30 * 24 * 3600; // 30 days
@@ -285,7 +524,7 @@ export function EditableSwapCard({ intentPreview, chatId, onSuccess }: EditableS
               message: {
                 account: intentPreview.smartWalletAddress,
                 spender,
-                token: fromAddress,
+                token: fromToken.contractAddress,
                 allowance,
                 period,
                 start,
@@ -312,7 +551,7 @@ export function EditableSwapCard({ intentPreview, chatId, onSuccess }: EditableS
             permission: {
               account: intentPreview.smartWalletAddress,
               spender,
-              token: fromAddress,
+              token: fromToken.contractAddress,
               allowance,
               period,
               start,
@@ -335,7 +574,7 @@ export function EditableSwapCard({ intentPreview, chatId, onSuccess }: EditableS
         onSuccess();
       } else {
         setStatusMessage("Requesting Connected Wallet transaction signature...");
-        
+
         const txHash = await provider.request({
           method: "eth_sendTransaction",
           params: [{
@@ -359,7 +598,7 @@ export function EditableSwapCard({ intentPreview, chatId, onSuccess }: EditableS
             walletType: "connected",
             swapDetails,
             txHash,
-            amountOut: estimatedOutputAmount,
+            amountOut: estimatedOutputAmount.toFixed(6),
           }),
         });
 
@@ -381,111 +620,296 @@ export function EditableSwapCard({ intentPreview, chatId, onSuccess }: EditableS
   };
 
   return (
-    <div className="mt-10 w-full max-w-[calc(100vw)] sm:max-w-md px-0.5">
-      <Card className="overflow-hidden bg-background border border-sidebar-border shadow-sm backdrop-blur-md rounded-3xl">
-        <CardContent className="space-y-4 ">
-          <div className="flex items-center justify-between font-semibold mb-1 text-lg">
-            <span>DeFi Swap Review</span>
-            <Badge variant="outline" className="text-xs px-2 py-0.5 capitalize border-emerald-500/30 text-emerald-500 bg-emerald-500/5">
-              {walletType === "smart" ? "Smart Account" : "Connected Wallet"}
-            </Badge>
-          </div>
+    <div className="mt-10 w-full max-w-[calc(100vw)] sm:max-w-md space-y-4 px-0.5">
 
-          <div className="space-y-3">
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-muted-foreground">Pay with</label>
-              <input
-                type="text"
-                value={fromToken}
-                onChange={(e) => setFromToken(e.target.value)}
-                className="flex h-10 w-full rounded-xl border border-white/10 bg-zinc-950 px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary text-foreground font-medium"
-                placeholder="e.g. USDC"
-              />
-            </div>
 
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-muted-foreground">Receive</label>
-              <input
-                type="text"
-                value={toToken}
-                onChange={(e) => setToToken(e.target.value)}
-                className="flex h-10 w-full rounded-xl border border-white/10 bg-zinc-950 px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary text-foreground font-medium"
-                placeholder="e.g. ETH"
-              />
-            </div>
+      {/* Stacked Panels Container */}
+      <div className="relative space-y-1.5">
 
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-muted-foreground">Amount (USD)</label>
-              <input
-                type="number"
-                value={amountUsd}
-                onChange={(e) => setAmountUsd(Number(e.target.value))}
-                className="flex h-10 w-full rounded-xl border border-white/10 bg-zinc-950 px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary text-foreground font-medium"
-                placeholder="Amount in USD"
-              />
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-muted-foreground">Execution Wallet</label>
-              <div className="flex gap-2">
-                <Button
+        {/* Top Panel (Sell) */}
+        <div className="bg-card border border-border rounded-3xl p-5 flex flex-col gap-2.5">
+          <div className="flex justify-between items-center">
+            <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Sell</span>
+            {/* Balance */}
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-semibold">
+              <span>Balance: {availableBalance.toFixed(4)} {fromToken.symbol}</span>
+              {availableBalance > 0 && (
+                <button
                   type="button"
-                  variant={walletType === "smart" ? "default" : "outline"}
-                  className="flex-1 h-9 text-xs font-semibold rounded-xl"
-                  onClick={() => setWalletType("smart")}
+                  onClick={handleMax}
+                  className="bg-muted hover:bg-muted/80 text-foreground font-bold px-2 py-1 rounded-md text-[9px] uppercase transition-all cursor-pointer"
                 >
-                  Smart Wallet
-                </Button>
-                <Button
-                  type="button"
-                  variant={walletType === "connected" ? "default" : "outline"}
-                  className="flex-1 h-9 text-xs font-semibold rounded-xl"
-                  onClick={() => setWalletType("connected")}
-                >
-                  Connected Wallet
-                </Button>
-              </div>
-            </div>
-
-            <div className="border-t border-primary/10 pt-3 mt-3 space-y-2">
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-muted-foreground">Est. Receive:</span>
-                <span className="font-semibold text-foreground">
-                  ~ {estimatedOutputAmount} {toToken.toUpperCase()}
-                </span>
-              </div>
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-muted-foreground">Est. Gas Fee:</span>
-                <span className="font-medium text-foreground">$0.15</span>
-              </div>
+                  Max
+                </button>
+              )}
             </div>
           </div>
 
-          {statusMessage && (
-            <div className="text-xs font-medium text-primary flex items-center gap-1.5 bg-primary/5 p-2 rounded-md border border-primary/10">
-              <Loader2 className="size-3.5 animate-spin" />
-              {statusMessage}
-            </div>
-          )}
+          <div className="flex items-center justify-between gap-4">
+            {/* Input */}
+            <input
+              type="number"
+              value={fromAmount}
+              onChange={(e) => setFromAmount(e.target.value)}
+              className="bg-transparent border-0 text-foreground text-3xl font-semibold w-full focus:outline-none focus:ring-0 p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              placeholder="0"
+            />
 
-          {errorMsg && (
-            <div className="text-xs font-medium text-red-500 bg-red-500/5 p-2 rounded-md border border-red-500/10">
-              {errorMsg}
-            </div>
-          )}
-
-          <div className="mt-4 flex gap-2">
-            <Button
-              size="lg"
-              disabled={isExecuting}
-              className="flex-1 h-10 text-[15px] font-bold rounded-xl"
-              onClick={handleExecute}
+            {/* Token Selector */}
+            <button
+              type="button"
+              onClick={() => setActiveSelector("from")}
+              className="flex items-center gap-2 bg-muted/30 hover:bg-muted/80 border border-border rounded-full pl-2 pr-3 py-1.5 text-foreground font-bold transition-all shrink-0 cursor-pointer"
             >
-              {isExecuting ? "Executing..." : "Execute Swap"}
-            </Button>
+              <img
+                src={fromToken.logoUrl || fallbackBaseLogo}
+                className="size-5 rounded-full object-cover border border-border"
+                alt=""
+                onError={(e) => { (e.target as HTMLImageElement).src = fallbackBaseLogo; }}
+              />
+              <span className="text-xs tracking-tight">{fromToken.symbol}</span>
+              <ChevronDown className="size-3 text-muted-foreground" />
+            </button>
           </div>
-        </CardContent>
-      </Card>
+
+          {/* Estimated USD Value */}
+          <div className="text-[11px] text-muted-foreground font-semibold">
+            {fromAmount && !isNaN(parseFloat(fromAmount)) ? (
+              <span>{formatCurrency(parseFloat(fromAmount) * fromTokenPrice)}</span>
+            ) : (
+              <span>$0.00</span>
+            )}
+          </div>
+        </div>
+
+        {/* Swap Direction Switch Button */}
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10">
+          <button
+            type="button"
+            onClick={handleSwapTokens}
+            className="bg-card text-foreground border border-border size-9 rounded-full flex items-center justify-center transition-all active:scale-95 cursor-pointer"
+          >
+            <ArrowRightLeft className="size-3.5 rotate-90 text-primary" />
+          </button>
+        </div>
+
+        {/* Bottom Panel (Buy) */}
+        <div className="bg-card border border-border shadow-sm rounded-3xl p-5 flex flex-col gap-2.5">
+          <div className="flex justify-between items-center">
+            <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Buy</span>
+          </div>
+
+          <div className="flex items-center justify-between gap-4">
+            {/* Estimated output display */}
+            <div className="text-foreground text-3xl font-semibold w-full select-all">
+              {estimatedOutputAmount > 0 ? estimatedOutputAmount.toFixed(4) : "0"}
+            </div>
+
+            {/* Token Selector */}
+            <button
+              type="button"
+              onClick={() => setActiveSelector("to")}
+              className="flex items-center gap-2 bg-muted/30 hover:bg-muted/80 border border-border rounded-full pl-2 pr-3 py-1.5 text-foreground font-bold transition-all shrink-0 cursor-pointer"
+            >
+              <img
+                src={toToken.logoUrl || fallbackBaseLogo}
+                className="size-5 rounded-full object-cover border border-border"
+                alt=""
+                onError={(e) => { (e.target as HTMLImageElement).src = fallbackBaseLogo; }}
+              />
+              <span className="text-xs tracking-tight">{toToken.symbol}</span>
+              <ChevronDown className="size-3 text-muted-foreground" />
+            </button>
+          </div>
+
+          {/* Estimated USD Value */}
+          <div className="text-[11px] text-muted-foreground font-semibold">
+            {estimatedOutputAmount > 0 ? (
+              <span>{formatCurrency(estimatedOutputAmount * toTokenPrice)}</span>
+            ) : (
+              <span>$0.00</span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Wallet Selection / Awareness Section */}
+      {hasSmartWallet && hasConnectedWallet ? (
+        <div className="flex flex-col gap-2">
+          {/* <div className="flex justify-between items-center text-xs text-muted-foreground font-semibold px-0.5">
+            <span>Pay With Wallet</span>
+            <span className="text-[10px] text-muted-foreground font-mono truncate max-w-[200px]">
+              {walletType === "smart" ? intentPreview.smartWalletAddress : wallets[0]?.address}
+            </span>
+          </div> */}
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setWalletType("smart")}
+              className={cn(
+                "flex-1 py-3 text-xs font-bold rounded-xl transition-all border cursor-pointer",
+                walletType === "smart"
+                  ?  "bg-[#ffce4842]/50 text-foreground border-none"
+                  : "bg-muted/30 text-muted-foreground border-none hover:bg-muted/80 hover:text-foreground"
+              )}
+            >
+              Smart Wallet
+            </button>
+            <button
+              type="button"
+              onClick={() => setWalletType("connected")}
+              className={cn(
+                "flex-1 py-3 text-xs font-bold rounded-xl transition-all border cursor-pointer",
+                walletType === "connected"
+                  ? "bg-[#ffce4842]/50 text-foreground border-none"
+                  : "bg-muted/30 text-muted-foreground border-none hover:bg-muted/80 hover:text-foreground"
+              )}
+            >
+              Connected Wallet
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="flex justify-between items-center bg-card border border-border px-5 py-3.5 rounded-3xl shadow-sm text-xs sm:text-sm">
+          <span className="text-muted-foreground font-semibold text-xs">Wallet</span>
+          <div className="text-right">
+            <span className="font-bold text-foreground text-xs">
+              {hasSmartWallet ? "Smart Wallet" : "Connected Wallet"}
+            </span>
+            <p className="text-[10px] text-muted-foreground font-mono mt-0.5">
+              {hasSmartWallet
+                ? `${intentPreview.smartWalletAddress.slice(0, 6)}...${intentPreview.smartWalletAddress.slice(-4)}`
+                : wallets[0] ? `${wallets[0].address.slice(0, 6)}...${wallets[0].address.slice(-4)}` : ""
+              }
+            </p>
+          </div>
+        </div>
+      )}
+
+
+
+      {/* Market Information Section */}
+      <div className="border-t border-border pt-3.5 space-y-2 px-1 text-xs">
+        <div className="flex justify-between items-center">
+          <span className="text-muted-foreground font-medium">Exchange Rate</span>
+          <span className="font-bold text-foreground">
+            1 {fromToken.symbol} = {(fromTokenPrice / toTokenPrice).toFixed(6)} {toToken.symbol}
+          </span>
+        </div>
+        <div className="flex justify-between items-center">
+          <span className="text-muted-foreground font-medium">Estimated Network Fee</span>
+          <span className="font-bold text-foreground">$0.15</span>
+        </div>
+      </div>
+
+      {/* Error / Status Messages */}
+      {statusMessage && (
+        <div className="text-xs font-medium text-primary flex items-center gap-1.5 bg-primary/5 p-3 rounded-2xl border border-primary/10">
+          <Loader2 className="size-3.5 animate-spin" />
+          {statusMessage}
+        </div>
+      )}
+      {errorMsg && (
+        <div className="text-xs font-medium text-red-500 bg-red-500/5 p-3 rounded-2xl border border-red-500/10">
+          {errorMsg}
+        </div>
+      )}
+
+      {/* Action Button CTA */}
+      <Button
+        size="lg"
+        disabled={isExecuting || !fromAmount || isNaN(parseFloat(fromAmount)) || parseFloat(fromAmount) <= 0}
+        className="w-full h-12 text-[15px] font-bold rounded-xl transition-all shadow-sm mt-1 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed bg-primary text-primary-foreground hover:bg-primary/95"
+        onClick={handleExecute}
+      >
+        {isExecuting ? "Executing Swap..." : "Swap"}
+      </Button>
+
+      {/* Token Search Dialog Overlay */}
+      <Dialog open={activeSelector !== null} onOpenChange={(open) => !open && setActiveSelector(null)}>
+        <DialogContent className="bg-popover border border-border text-popover-foreground max-w-sm w-full rounded-3xl p-5 shadow-2xl backdrop-blur-xl">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold text-foreground mb-1">Select a Token</DialogTitle>
+          </DialogHeader>
+
+          {/* Search Box */}
+          <div className="relative mb-3">
+            <input
+              type="text"
+              placeholder="Search by name, symbol, or address"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-muted/30 border border-border rounded-2xl px-4 py-2.5 text-xs focus:outline-none focus:border-primary text-foreground"
+            />
+          </div>
+
+          {/* Quick Select Tokens */}
+          <div className="mb-3">
+            <label className="text-[10px] text-muted-foreground font-semibold block mb-1.5 uppercase tracking-wider">Popular Tokens</label>
+            <div className="flex flex-wrap gap-1.5">
+              {POPULAR_TOKENS.map((token) => (
+                <button
+                  key={token.symbol}
+                  type="button"
+                  onClick={() => handleSelectToken(token)}
+                  className="flex items-center gap-1.5 bg-muted/30 hover:bg-muted/80 border border-border rounded-full px-2.5 py-1.5 text-xs text-foreground font-medium transition-all cursor-pointer"
+                >
+                  <img
+                    src={token.logoUrl || fallbackBaseLogo}
+                    className="size-3.5 rounded-full object-cover"
+                    alt=""
+                    onError={(e) => { (e.target as HTMLImageElement).src = fallbackBaseLogo; }}
+                  />
+                  {token.symbol}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Results List */}
+          <div className="max-h-[220px] overflow-y-auto space-y-1 pr-1 scrollbar-thin scrollbar-thumb-zinc-850">
+            {isSearching ? (
+              <div className="text-center py-6 text-muted-foreground flex items-center justify-center gap-2 text-xs">
+                <Loader2 className="size-3.5 animate-spin text-primary" /> Searching DexScreener...
+              </div>
+            ) : searchResults.length > 0 ? (
+              searchResults.map((token) => (
+                <button
+                  key={token.contractAddress}
+                  type="button"
+                  onClick={() => handleSelectToken(token)}
+                  className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-muted/30 transition-all text-left group cursor-pointer"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <img
+                      src={token.logoUrl || fallbackBaseLogo}
+                      className="size-7 rounded-full border border-border p-0.5 object-cover shrink-0"
+                      alt=""
+                      onError={(e) => { (e.target as HTMLImageElement).src = fallbackBaseLogo; }}
+                    />
+                    <div className="min-w-0">
+                      <p className="font-semibold text-xs text-foreground group-hover:text-primary transition-colors">{token.symbol}</p>
+                      <p className="text-[10px] text-muted-foreground truncate max-w-[150px]">{token.name}</p>
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    {token.priceUsd && (
+                      <p className="font-medium text-foreground text-xs">
+                        ${Number(token.priceUsd) < 0.01 ? Number(token.priceUsd).toFixed(6) : Number(token.priceUsd).toFixed(2)}
+                      </p>
+                    )}
+                    <p className="text-[9px] text-muted-foreground font-mono">{token.contractAddress.slice(0, 6)}...{token.contractAddress.slice(-4)}</p>
+                  </div>
+                </button>
+              ))
+            ) : searchQuery ? (
+              <div className="text-center py-6 text-muted-foreground text-xs">No tokens found on Base chain.</div>
+            ) : (
+              <div className="text-center py-6 text-muted-foreground text-xs">Search for any token or ticker.</div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -733,21 +1157,21 @@ function MessageBubble({
             const isSwap = message.intentPreview.trigger.type === "swap";
             const fromTokenInfo = config.fromTokenInfo || { symbol: config.fromToken || "USDC", contractAddress: "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913" };
             const toTokenInfo = config.toTokenInfo || { symbol: config.toToken || "ETH", contractAddress: "0x4200000000000000000000000000000000000006" };
-            
+
             const amountUsd = config.amountUsd || 10;
             const frequency = config.frequency || "daily";
-            
+
             const creationDate = new Date(message.intentPreview.createdAt || Date.now());
             const expiresDate = new Date(message.intentPreview.execution?.expiresAt || (Date.now() + 30 * 24 * 3600 * 1000));
-            
+
             const formatDate = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
             const formatTime = (d: Date) => d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", timeZoneName: "short" });
 
             if (isSwap) {
               return (
-                <EditableSwapCard 
-                  intentPreview={message.intentPreview} 
-                  chatId={chatId} 
+                <EditableSwapCard
+                  intentPreview={message.intentPreview}
+                  chatId={chatId}
                   onSuccess={() => {
                     // Sub-component query invalidation refreshes the data automatically
                   }}
@@ -873,7 +1297,7 @@ function MessageBubble({
             const creationDate = new Date(auto.createdAt || Date.now());
             const expiresDate = new Date(auto.execution?.expiresAt || (Date.now() + 30 * 24 * 3600 * 1000));
             const nextExecutionDate = auto.execution?.nextExecutionAt ? new Date(auto.execution.nextExecutionAt) : null;
-            
+
             const formatDate = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
             const formatTime = (d: Date) => d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", timeZoneName: "short" });
 
@@ -893,16 +1317,16 @@ function MessageBubble({
 
             return (
               <div className="mt-10 w-full max-w-[calc(100vw)] sm:max-w-md px-0.5">
-                <Card className="overflow-hidden bg-background border-border shadow-sm backdrop-blur-md">
+                <Card className="overflow-hidden bg-background border border-sidebar-border shadow-sm backdrop-blur-md rounded-3xl">
                   <CardContent className="">
                     <div className="flex justify-between items-center mb-4 pb-1">
                       <div className="flex items-center gap-2 font-semibold text-lg">
-                        
+
                         Active Automation
                       </div>
-                      <Badge variant="outline" className="text-xs px-2 py-0.5 capitalize border-emerald-500/30 text-emerald-500 bg-emerald-500/5">
+                      {/* <Badge variant="outline" className="text-xs px-2 py-0.5 capitalize border-emerald-500/30 text-emerald-500 bg-emerald-500/5">
                         {auto.status}
-                      </Badge>
+                      </Badge> */}
                     </div>
 
                     <div className="space-y-3">
@@ -1005,12 +1429,12 @@ function MessageBubble({
                     <div className="mt-5 flex flex-col gap-2 border-t border-primary/10 pt-4">
                       <Button
                         size="lg"
-                        className="w-full h-10 text-md font-bold bg-primary text-primary-foreground"
+                        className="w-full flex justify-center gap-4 h-10 text-md font-bold bg-primary rounded-xl text-primary-foreground"
                         onClick={() => router.push(`/automations/${auto.id}`)}
                       >
-                       View Automation
+                        View Automation <ArrowRight/>
                       </Button>
-                      <div className="flex gap-2">
+                      {/* <div className="flex gap-2">
                         <Button
                           type="button"
                           size="sm"
@@ -1031,7 +1455,7 @@ function MessageBubble({
                         >
                           Delete
                         </Button>
-                      </div>
+                      </div> */}
                     </div>
                   </CardContent>
                 </Card>
@@ -1046,11 +1470,11 @@ function MessageBubble({
                 className={cn(
                   "gap-1.5 py-0.5 px-2.5 text-[10px] font-semibold tracking-tight",
                   message.executionStatus === "completed" &&
-                    "border-emerald-500/50 bg-emerald-500/5 text-emerald-500",
+                  "border-emerald-500/50 bg-emerald-500/5 text-emerald-500",
                   message.executionStatus === "executing" &&
-                    "border-blue-500/50 bg-blue-500/5 text-blue-500",
+                  "border-blue-500/50 bg-blue-500/5 text-blue-500",
                   message.executionStatus === "failed" &&
-                    "border-red-500/50 bg-red-500/5 text-red-500",
+                  "border-red-500/50 bg-red-500/5 text-red-500",
                 )}
               >
                 {message.executionStatus === "completed" && (
@@ -1113,21 +1537,21 @@ export function ChatContent({ chatId }: ChatContentProps) {
     try {
       // Prioritize Privy embedded wallet to ensure social login users sign via Privy
       const activeWallet = wallets.find((w) => w.walletClientType === "privy") ||
-                           wallets.find((w) => w.walletClientType === "coinbase_wallet" || w.address.toLowerCase() === intentPreview.smartWalletAddress.toLowerCase()) ||
-                           wallets[0];
-      
+        wallets.find((w) => w.walletClientType === "coinbase_wallet" || w.address.toLowerCase() === intentPreview.smartWalletAddress.toLowerCase()) ||
+        wallets[0];
+
       if (!activeWallet) {
         throw new Error("No active wallet connected. Please connect a wallet first.");
       }
 
       const provider = await activeWallet.getEthereumProvider();
-      
+
       const tokenAddress = intentPreview.actions?.[0]?.config?.from || "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913"; // Default to USDC
       const amount = intentPreview.actions?.[0]?.config?.amount || 10;
-      
+
       const isEth = tokenAddress.toLowerCase() === "0x4200000000000000000000000000000000000006";
       const allowance = parseUnits(amount.toString(), isEth ? 18 : 6).toString();
-      
+
       const period = 86400; // 1 day
       const start = Math.floor(Date.now() / 1000);
       const end = start + 30 * 24 * 3600; // 30 days
@@ -1511,7 +1935,7 @@ export function ChatContent({ chatId }: ChatContentProps) {
                             ? "Show all steps"
                             : "Show only last two"
                         }
-                        
+
                         className="group flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
                       >
                         {streamingCollapsed ? (
@@ -1527,11 +1951,11 @@ export function ChatContent({ chatId }: ChatContentProps) {
                         ? streamingSteps.slice(-2)
                         : streamingSteps
                       ).map((step) => (
-                        <div key={step.id} className="flex items-start gap-3">
+                        <div key={step.id} className="grid grid-cols-[20px_1fr] gap-3">
                           {step.completed ? (
-                            <CheckCircle2 className="size-4 text-emerald-500 mt-0.5" />
+                            <Check className="size-4 text-emerald-500 mt-0.5" />
                           ) : (
-                            <Loader2 className="size-4 animate-spin text-primary mt-0.5" />
+                            <Loader className="size-4 animate-spin text-primary mt-0.5" />
                           )}
                           <span
                             className={cn(
@@ -1574,7 +1998,7 @@ export function ChatContent({ chatId }: ChatContentProps) {
         <div
           className={cn(
             "fixed md:absolute left-0 right-0 z-20 px-3 bg-linear-to-b from-background/10 rounded-3xl via-background to-background md:pb-2 pb-4",
-            hasMessages || isMobile || chatId 
+            hasMessages || isMobile || chatId
               ? "bottom-0 md:bottom-0"
               : "top-100 md:top-80 -translate-y-1/2",
           )}
