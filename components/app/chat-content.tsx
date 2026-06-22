@@ -107,6 +107,7 @@ interface ChatMessage {
   role: "user" | "assistant";
   content: string;
   timestamp: string;
+  responseDuration?: number;
   intentPreview?: {
     id: string;
     status: "preview" | "active" | "completed";
@@ -162,6 +163,7 @@ interface EditableSwapCardProps {
   intentPreview: any;
   chatId?: string;
   onSuccess: () => void;
+  isExpired?: boolean;
 }
 
 interface TokenInfo {
@@ -279,7 +281,7 @@ const searchTokens = async (query: string): Promise<TokenInfo[]> => {
   }
 };
 
-export function EditableSwapCard({ intentPreview, chatId, onSuccess }: EditableSwapCardProps) {
+export function EditableSwapCard({ intentPreview, chatId, onSuccess, isExpired = false }: EditableSwapCardProps) {
   const config = intentPreview.trigger?.config || {};
   const { wallets } = useWallets();
   const { getAccessToken } = usePrivy();
@@ -622,7 +624,11 @@ export function EditableSwapCard({ intentPreview, chatId, onSuccess }: EditableS
 
   return (
     <div className="mt-10 w-full max-w-[calc(100vw)] sm:max-w-md space-y-4 px-0.5">
-
+      {isExpired && (
+        <div className="text-xs font-semibold text-amber-500 bg-amber-500/10 p-3 rounded-2xl border border-amber-500/20">
+          ⚠️ This swap preview has expired. Please request a new swap strategy to regenerate.
+        </div>
+      )}
 
       {/* Stacked Panels Container */}
       <div className="relative space-y-1.5">
@@ -637,8 +643,9 @@ export function EditableSwapCard({ intentPreview, chatId, onSuccess }: EditableS
               {availableBalance > 0 && (
                 <button
                   type="button"
-                  onClick={handleMax}
-                  className="bg-muted hover:bg-muted/80 text-foreground font-bold px-2 py-1 rounded-md text-[9px] uppercase transition-all cursor-pointer"
+                  disabled={isExpired}
+                  onClick={!isExpired ? handleMax : undefined}
+                  className={cn("bg-muted hover:bg-muted/80 text-foreground font-bold px-2 py-1 rounded-md text-[9px] uppercase transition-all cursor-pointer", isExpired && "opacity-50 cursor-not-allowed")}
                 >
                   Max
                 </button>
@@ -651,16 +658,18 @@ export function EditableSwapCard({ intentPreview, chatId, onSuccess }: EditableS
             <input
               type="number"
               value={fromAmount}
+              disabled={isExpired}
               onChange={(e) => setFromAmount(e.target.value)}
-              className="bg-transparent border-0 text-foreground text-3xl font-semibold w-full focus:outline-none focus:ring-0 p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              className="bg-transparent border-0 text-foreground text-3xl font-semibold w-full focus:outline-none focus:ring-0 p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none disabled:opacity-50"
               placeholder="0"
             />
 
             {/* Token Selector */}
             <button
               type="button"
-              onClick={() => setActiveSelector("from")}
-              className="flex items-center gap-2 bg-muted/30 hover:bg-muted/80 border border-border rounded-full pl-2 pr-3 py-1.5 text-foreground font-bold transition-all shrink-0 cursor-pointer"
+              disabled={isExpired}
+              onClick={() => !isExpired && setActiveSelector("from")}
+              className={cn("flex items-center gap-2 bg-muted/30 hover:bg-muted/80 border border-border rounded-full pl-2 pr-3 py-1.5 text-foreground font-bold transition-all shrink-0 cursor-pointer", isExpired && "opacity-50 cursor-not-allowed")}
             >
               <img
                 src={fromToken.logoUrl || fallbackBaseLogo}
@@ -687,8 +696,9 @@ export function EditableSwapCard({ intentPreview, chatId, onSuccess }: EditableS
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10">
           <button
             type="button"
-            onClick={handleSwapTokens}
-            className="bg-card text-foreground border border-border size-9 rounded-full flex items-center justify-center transition-all active:scale-95 cursor-pointer"
+            disabled={isExpired}
+            onClick={!isExpired ? handleSwapTokens : undefined}
+            className={cn("bg-card text-foreground border border-border size-9 rounded-full flex items-center justify-center transition-all active:scale-95 cursor-pointer", isExpired && "opacity-50 cursor-not-allowed")}
           >
             <ArrowRightLeft className="size-3.5 rotate-90 text-primary" />
           </button>
@@ -709,8 +719,9 @@ export function EditableSwapCard({ intentPreview, chatId, onSuccess }: EditableS
             {/* Token Selector */}
             <button
               type="button"
-              onClick={() => setActiveSelector("to")}
-              className="flex items-center gap-2 bg-muted/30 hover:bg-muted/80 border border-border rounded-full pl-2 pr-3 py-1.5 text-foreground font-bold transition-all shrink-0 cursor-pointer"
+              disabled={isExpired}
+              onClick={() => !isExpired && setActiveSelector("to")}
+              className={cn("flex items-center gap-2 bg-muted/30 hover:bg-muted/80 border border-border rounded-full pl-2 pr-3 py-1.5 text-foreground font-bold transition-all shrink-0 cursor-pointer", isExpired && "opacity-50 cursor-not-allowed")}
             >
               <img
                 src={toToken.logoUrl || fallbackBaseLogo}
@@ -746,9 +757,10 @@ export function EditableSwapCard({ intentPreview, chatId, onSuccess }: EditableS
           <div className="flex gap-2">
             <button
               type="button"
-              onClick={() => setWalletType("smart")}
+              disabled={isExpired}
+              onClick={() => !isExpired && setWalletType("smart")}
               className={cn(
-                "flex-1 py-3 text-xs font-bold rounded-xl transition-all border cursor-pointer",
+                "flex-1 py-3 text-xs font-bold rounded-xl transition-all border cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed",
                 walletType === "smart"
                   ?  "bg-[#ffce4842]/50 text-foreground border-none"
                   : "bg-muted/30 text-muted-foreground border-none hover:bg-muted/80 hover:text-foreground"
@@ -758,9 +770,10 @@ export function EditableSwapCard({ intentPreview, chatId, onSuccess }: EditableS
             </button>
             <button
               type="button"
-              onClick={() => setWalletType("connected")}
+              disabled={isExpired}
+              onClick={() => !isExpired && setWalletType("connected")}
               className={cn(
-                "flex-1 py-3 text-xs font-bold rounded-xl transition-all border cursor-pointer",
+                "flex-1 py-3 text-xs font-bold rounded-xl transition-all border cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed",
                 walletType === "connected"
                   ? "bg-[#ffce4842]/50 text-foreground border-none"
                   : "bg-muted/30 text-muted-foreground border-none hover:bg-muted/80 hover:text-foreground"
@@ -819,11 +832,11 @@ export function EditableSwapCard({ intentPreview, chatId, onSuccess }: EditableS
       {/* Action Button CTA */}
       <Button
         size="lg"
-        disabled={isExecuting || !fromAmount || isNaN(parseFloat(fromAmount)) || parseFloat(fromAmount) <= 0}
+        disabled={isExpired || isExecuting || !fromAmount || isNaN(parseFloat(fromAmount)) || parseFloat(fromAmount) <= 0}
         className="w-full h-12 text-[15px] font-bold rounded-xl transition-all shadow-sm mt-1 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed bg-primary text-primary-foreground hover:bg-primary/95"
         onClick={handleExecute}
       >
-        {isExecuting ? "Executing Swap..." : "Swap"}
+        {isExecuting ? "Executing Swap..." : isExpired ? "Swap Expired" : "Swap"}
       </Button>
 
       {/* Token Search Dialog Overlay */}
@@ -912,6 +925,224 @@ export function EditableSwapCard({ intentPreview, chatId, onSuccess }: EditableS
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+interface ScheduledDraftCardProps {
+  intentPreview: any;
+  isExpired: boolean;
+  onConfirm: (updatedPreview: any) => void;
+}
+
+export function ScheduledDraftCard({ intentPreview, isExpired, onConfirm }: ScheduledDraftCardProps) {
+  const triggerConfig = intentPreview.trigger?.config || {};
+  const isSchedule = intentPreview.trigger?.type === "schedule";
+  const [expiryDays, setExpiryDays] = React.useState<number>(30);
+  
+  // Resolve default time from triggerConfig.schedule?.startDate
+  const initialDate = triggerConfig.schedule?.startDate ? new Date(triggerConfig.schedule.startDate) : new Date();
+  
+  // Hours and minutes representation
+  const formatHourMin = (date: Date): string => {
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    return `${hours}:${minutes}`;
+  };
+  const [selectedTime, setSelectedTime] = React.useState<string>(formatHourMin(initialDate));
+
+  const fromTokenInfo = triggerConfig.fromTokenInfo || { symbol: triggerConfig.fromToken || "USDC", contractAddress: "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913" };
+  const toTokenInfo = triggerConfig.toTokenInfo || { symbol: triggerConfig.toToken || "ETH", contractAddress: "0x4200000000000000000000000000000000000006" };
+  
+  const amountUsd = triggerConfig.amountUsd || 10;
+  const frequency = triggerConfig.frequency || "daily";
+
+  // Re-calculate the preview and config details dynamically based on state
+  const getUpdatedPreview = () => {
+    const updated = JSON.parse(JSON.stringify(intentPreview));
+    
+    // Update expiresAt based on selected expiryDays
+    const expiryMs = expiryDays * 24 * 3600 * 1000;
+    const expiresDate = new Date(Date.now() + expiryMs);
+    updated.execution = updated.execution || {};
+    updated.execution.expiresAt = expiresDate.toISOString();
+    updated.execution.maxRuns = (updated.trigger?.type === "schedule" && (triggerConfig.mode === "once" || triggerConfig.frequency === "once")) ? 1 : Math.ceil(expiryDays / (frequency === "weekly" ? 7 : frequency === "monthly" ? 30 : 1));
+
+    // Update schedule start time if isSchedule
+    if (isSchedule && updated.trigger?.config?.schedule) {
+      const [h, m] = selectedTime.split(":").map(Number);
+      const newStartDate = new Date(updated.trigger.config.schedule.startDate || Date.now());
+      newStartDate.setHours(h, m, 0, 0);
+      updated.trigger.config.schedule.startDate = newStartDate.toISOString();
+      
+      // Update humanReadable time formatting
+      const formatTimeText = (date: Date): string => {
+        let hours = date.getHours();
+        const mins = date.getMinutes();
+        const ampm = hours >= 12 ? "PM" : "AM";
+        hours = hours % 12;
+        hours = hours ? hours : 12;
+        const minsStr = mins < 10 ? "0" + mins : mins;
+        return `${hours}:${minsStr} ${ampm}`;
+      };
+      
+      const newTimeText = `at ${formatTimeText(newStartDate)}`;
+      
+      // Dynamic verb resolution
+      const isFromStable = ["usdc", "usdt", "dai"].includes(fromTokenInfo.symbol?.toLowerCase());
+      const isToStable = ["usdc", "usdt", "dai"].includes(toTokenInfo.symbol?.toLowerCase());
+      let verb = "Swap";
+      if (!isFromStable && isToStable) {
+        verb = "Sell";
+      } else if (isFromStable && !isToStable) {
+        verb = "Buy";
+      }
+      
+      const prevMode = updated.trigger.config.schedule.mode;
+      const daysOfWeek = updated.trigger.config.schedule.recurrence?.daysOfWeek;
+      const daysText = daysOfWeek && daysOfWeek.length > 0 ? ` on ${daysOfWeek.map((d: string) => d.charAt(0).toUpperCase() + d.slice(1)).join(", ")}` : "";
+      const frequencyText = prevMode === "once" ? "once" : (frequency || "daily");
+      
+      if (prevMode === "once") {
+        updated.preview.humanReadable = `${verb} $${amountUsd} of ${toTokenInfo.symbol} with ${fromTokenInfo.symbol} once on ${triggerConfig.startDateText} ${newTimeText}`;
+      } else {
+        updated.preview.humanReadable = `${verb} $${amountUsd} of ${toTokenInfo.symbol} with ${fromTokenInfo.symbol} ${frequencyText}${daysText} ${newTimeText}`;
+      }
+    }
+    
+    return updated;
+  };
+
+  const handleApprove = () => {
+    const updated = getUpdatedPreview();
+    onConfirm(updated);
+  };
+
+  // Determine verb for header title
+  const isFromStable = ["usdc", "usdt", "dai"].includes(fromTokenInfo.symbol?.toLowerCase());
+  const isToStable = ["usdc", "usdt", "dai"].includes(toTokenInfo.symbol?.toLowerCase());
+  let verb = "Swap";
+  if (!isFromStable && isToStable) {
+    verb = "Sell";
+  } else if (isFromStable && !isToStable) {
+    verb = "Buy";
+  }
+
+  const isOneTime = triggerConfig.mode === "once" || triggerConfig.frequency === "once";
+  const cardTitle = isSchedule 
+    ? (isOneTime ? `One-time Scheduled ${verb}` : `Recurring ${verb}`) 
+    : `${verb} Limit Trigger`;
+
+  const updatedPreview = getUpdatedPreview();
+  const expiresDate = new Date(updatedPreview.execution.expiresAt);
+  const formatDate = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  
+  return (
+    <Card className="overflow-hidden bg-background border border-sidebar-border shadow-sm backdrop-blur-md rounded-3xl mt-10 w-full max-w-[calc(100vw)] sm:max-w-md">
+      <CardContent className="">
+        {isExpired && (
+          <div className="mb-4 text-xs font-semibold text-amber-500 bg-amber-500/10 p-2 rounded-lg border-amber-500/20">
+            This card has expired. Please request a new strategy to regenerate.
+          </div>
+        )}
+        
+        <div className="flex items-center gap-2 font-semibold mb-4 text-lg">
+          {cardTitle}
+        </div>
+        
+        <div className="space-y-3">
+          <div className="flex justify-between items-center text-md">
+            <span className="text-muted-foreground">Action</span>
+            <span className="font-medium text-right flex items-center gap-1.5 capitalize">
+              {verb} ${amountUsd} <TokenBadge tokenInfo={toTokenInfo} />
+            </span>
+          </div>
+
+          <div className="flex justify-between items-center text-md">
+            <span className="text-muted-foreground">Pay with</span>
+            <span className="font-medium text-right">
+              <TokenBadge tokenInfo={fromTokenInfo} />
+            </span>
+          </div>
+
+          {isSchedule ? (
+            <div className="flex justify-between items-center text-md pt-2">
+              <span className="text-muted-foreground">Time of Day</span>
+              <input
+                type="time"
+                disabled={isExpired}
+                value={selectedTime}
+                onChange={(e) => setSelectedTime(e.target.value)}
+                className="bg-muted/30 border border-border rounded-lg px-2.5 py-1 text-xs text-foreground focus:outline-none focus:border-primary disabled:opacity-50"
+              />
+            </div>
+          ) : (
+            <div className="flex justify-between items-center text-md pt-2">
+              <span className="text-muted-foreground">Trigger Condition</span>
+              <span className="font-medium text-right flex items-center gap-1.5 text-xs sm:text-sm">
+                If <TokenBadge tokenInfo={toTokenInfo} /> {triggerConfig.conditionType?.includes("drops_below") ? "drops below or equals" : "rises above or equals"} ${triggerConfig.targetValue}
+              </span>
+            </div>
+          )}
+
+          <div className="flex justify-between items-center text-md pt-2">
+            <span className="text-muted-foreground">Strategy Validity</span>
+            <select
+              disabled={isExpired}
+              value={expiryDays}
+              onChange={(e) => setExpiryDays(Number(e.target.value))}
+              className="bg-muted/30 border border-border rounded-lg px-2.5 py-1 text-xs text-foreground focus:outline-none focus:border-primary disabled:opacity-50"
+            >
+              <option value={7}>7 Days</option>
+              <option value={30}>30 Days (Default)</option>
+              <option value={90}>90 Days</option>
+              <option value={365}>1 Year</option>
+            </select>
+          </div>
+
+          <div className="flex justify-between items-center text-md pt-2">
+            <span className="text-muted-foreground">Est. Network Fee</span>
+            <span className="font-medium">
+              {intentPreview.preview.estimatedFee}
+            </span>
+          </div>
+
+          {/* Cryptographic Spend Permission Security Panel */}
+          <div className="border-t border-primary/10 pt-3 mt-3 space-y-2 bg-muted/10 p-3 rounded-2xl border border-border/50">
+            <span className="text-[11px] font-bold text-foreground uppercase tracking-wider block mb-1">
+              Qleva Spend Permission
+            </span>
+            <div className="grid grid-cols-[60px_1fr] gap-x-2 gap-y-1 text-xs text-muted-foreground">
+              {/* <span>Spender:</span>
+              <span className="font-mono text-[10px] text-foreground truncate" title={intentPreview.spender || "0x8888888888888888888888888888888888888888"}>
+                {intentPreview.spender || "0x8888888888888888888888888888888888888888"}
+              </span> */}
+              
+              <span>Allowance:</span>
+              <span className="font-semibold text-foreground">
+                {amountUsd} {fromTokenInfo.symbol} per 24 Hours
+              </span>
+              
+              <span>Duration:</span>
+              <span className="text-foreground">
+                {formatDate(new Date())} to {formatDate(expiresDate)}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-4 flex gap-2">
+          <Button
+            type="button"
+            size="lg"
+            disabled={isExpired}
+            className="w-full h-10 text-[15px] font-bold rounded-xl bg-primary text-primary-foreground hover:bg-primary/95 disabled:opacity-50"
+            onClick={handleApprove}
+          >
+            Approve & Sign
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -1133,6 +1364,7 @@ function MessageBubble({
 
               {!isUser && (
                 <>
+                 
                   <button
                     className=" ml-2 group-hover:opacity-100 transition-opacity bg-transparent flex items-center justify-center p-1 rounded-full text-muted-foreground hover:text-foreground"
                     aria-label="Like message"
@@ -1146,141 +1378,38 @@ function MessageBubble({
                     title="Dislike message"
                   >
                     <ThumbsDown className="size-4" />
-                  </button>
+                  </button> {message.responseDuration && (
+                    <span className="text-[10px] ml-2 text-muted-foreground select-none font-medium mr-2 self-center">
+                      Took {message.responseDuration.toFixed(1)}s
+                    </span>
+                  )}
                 </>
               )}
             </div>
           </div>
 
           {message.intentPreview && (() => {
-            const config = message.intentPreview.trigger.config;
-            const isSchedule = message.intentPreview.trigger.type === "schedule";
-            const isSwap = message.intentPreview.trigger.type === "swap";
-            const fromTokenInfo = config.fromTokenInfo || { symbol: config.fromToken || "USDC", contractAddress: "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913" };
-            const toTokenInfo = config.toTokenInfo || { symbol: config.toToken || "ETH", contractAddress: "0x4200000000000000000000000000000000000006" };
-
-            const amountUsd = config.amountUsd || 10;
-            const frequency = config.frequency || "daily";
-
-            const creationDate = new Date(message.intentPreview.createdAt || Date.now());
-            const expiresDate = new Date(message.intentPreview.execution?.expiresAt || (Date.now() + 30 * 24 * 3600 * 1000));
-
-            const formatDate = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-            const formatTime = (d: Date) => d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", timeZoneName: "short" });
-
+            const CARD_EXPIRY_MS = 10 * 60 * 1000;
+            const isExpired = Date.now() - new Date(message.timestamp).getTime() > CARD_EXPIRY_MS;
+            const isSwap = message.intentPreview.trigger?.type === "swap";
+            
             if (isSwap) {
               return (
                 <EditableSwapCard
                   intentPreview={message.intentPreview}
                   chatId={chatId}
-                  onSuccess={() => {
-                    // Sub-component query invalidation refreshes the data automatically
-                  }}
+                  onSuccess={() => {}}
+                  isExpired={isExpired}
                 />
               );
             }
 
             return (
-              <div className="mt-10 w-full max-w-[calc(100vw)] sm:max-w-md px-0.5">
-                <Card className="overflow-hidden bg-background border border-sidebar-border shadow-sm backdrop-blur-md rounded-3xl">
-                  <CardContent className="">
-                    <div className="flex items-center gap-2 font-semibold mb-4 text-lg">
-                      Automation Summary
-                    </div>
-                    <div className="space-y-3">
-                      <div className="flex justify-between items-center text-md">
-                        <span className="text-muted-foreground">Automation</span>
-                        <span className="font-semibold capitalize">
-                          {isSchedule ? "Recurring Buy" : "Price Condition Trigger"}
-                        </span>
-                      </div>
-
-                      {isSchedule ? (
-                        <>
-                          <div className="flex justify-between items-center text-md pt-2">
-                            <span className="text-muted-foreground">Buy</span>
-                            <span className="font-medium text-right flex items-center gap-1.5">
-                              ${amountUsd} <TokenBadge tokenInfo={toTokenInfo} />
-                            </span>
-                          </div>
-                          <div className="flex justify-between items-center text-md pt-2">
-                            <span className="text-muted-foreground">Pay with</span>
-                            <span className="font-medium text-right">
-                              <TokenBadge tokenInfo={fromTokenInfo} />
-                            </span>
-                          </div>
-                          <div className="flex justify-between items-center text-md pt-2">
-                            <span className="text-muted-foreground">Schedule</span>
-                            <span className="font-medium text-right text-xs sm:text-sm">
-                              {getFriendlyScheduleDescription(config.schedule, frequency, config.startDateText)}
-                            </span>
-                          </div>
-                          <div className="flex justify-between items-center text-md pt-2">
-                            <span className="text-muted-foreground">Ends</span>
-                            <span className="font-medium text-right">
-                              {formatDate(expiresDate)}
-                            </span>
-                          </div>
-                        </>
-                      ) : (
-                        <>
-                          <div className="flex justify-between items-center text-md pt-2">
-                            <span className="text-muted-foreground">Condition</span>
-                            <span className="font-medium text-right flex items-center gap-1.5">
-                              If <TokenBadge tokenInfo={toTokenInfo} /> {config.conditionType === "drops_below" ? "drops below" : "rises above"} ${config.targetValue}
-                            </span>
-                          </div>
-                          <div className="flex justify-between items-center text-md pt-2">
-                            <span className="text-muted-foreground">Action</span>
-                            <span className="font-medium text-right flex items-center gap-1.5">
-                              Swap ${amountUsd} <TokenBadge tokenInfo={fromTokenInfo} /> for <TokenBadge tokenInfo={toTokenInfo} />
-                            </span>
-                          </div>
-                          <div className="flex justify-between items-center text-md pt-2">
-                            <span className="text-muted-foreground">Starts</span>
-                            <span className="font-medium text-right">
-                              {formatDate(creationDate)}
-                            </span>
-                          </div>
-                          <div className="flex justify-between items-center text-md pt-2">
-                            <span className="text-muted-foreground">Ends</span>
-                            <span className="font-medium text-right">
-                              {formatDate(expiresDate)}
-                            </span>
-                          </div>
-                        </>
-                      )}
-
-                      <div className="flex justify-between items-center text-md pt-2">
-                        <span className="text-muted-foreground">Est. Fee</span>
-                        <span className="font-medium">
-                          {message.intentPreview.preview.estimatedFee}
-                        </span>
-                      </div>
-
-                      {/* Permissions Section */}
-                      <div className="border-t border-primary/10 pt-3 mt-3">
-                        <span className="text-sm font-semibold text-foreground block mb-2">Qleva can act within these limits:</span>
-                        <ul className="text-xs space-y-1.5 text-muted-foreground pl-4 list-disc">
-                          <li>Spend up to ${amountUsd} {fromTokenInfo.symbol} per execution</li>
-                          <li>Execute {isSchedule ? `once per ${frequency === "daily" ? "day" : frequency === "weekly" ? "week" : "month"}` : "on price condition"}</li>
-                          <li>Permission expires {formatDate(expiresDate)}</li>
-                        </ul>
-                      </div>
-                    </div>
-                    <div className="mt-4 flex gap-2">
-                      <Button
-                        type="button"
-                        size="lg"
-                        className="flex-1 h-10 text-[15px] font-bold rounded-xl"
-                        onClick={() => onConfirm?.(message.intentPreview)}
-                      >
-                        Approve & Sign
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
+              <ScheduledDraftCard
+                intentPreview={message.intentPreview}
+                isExpired={isExpired}
+                onConfirm={(updated) => onConfirm?.(updated)}
+              />
             );
           })()}
 
@@ -1294,6 +1423,7 @@ function MessageBubble({
             const isActive = auto.status === "active";
             const amountUsd = config.amountUsd || 10;
             const frequency = config.frequency || "daily";
+            const isOneTime = config.schedule?.mode === "once" || config.frequency === "once";
 
             const creationDate = new Date(auto.createdAt || Date.now());
             const expiresDate = new Date(auto.execution?.expiresAt || (Date.now() + 30 * 24 * 3600 * 1000));
@@ -1322,19 +1452,23 @@ function MessageBubble({
                   <CardContent className="">
                     <div className="flex justify-between items-center mb-4 pb-1">
                       <div className="flex items-center gap-2 font-semibold text-lg">
-
-                        Active Automation
+                        {auto.status === "completed" ? "Completed Strategy" : (isSchedule ? (isOneTime ? "Scheduled Trade" : "Recurring Buy") : "Price Limit Trigger")}
                       </div>
-                      {/* <Badge variant="outline" className="text-xs px-2 py-0.5 capitalize border-emerald-500/30 text-emerald-500 bg-emerald-500/5">
+                      <Badge variant="outline" className={cn("text-xs px-2 py-0.5 capitalize border-none font-semibold",
+                        auto.status === "active" && "bg-emerald-500/10 text-emerald-500",
+                        auto.status === "completed" && "bg-amber-500/10 text-amber-500",
+                        auto.status === "paused" && "bg-blue-500/10 text-blue-500",
+                        auto.status === "failed" && "bg-red-500/10 text-red-500"
+                      )}>
                         {auto.status}
-                      </Badge> */}
+                      </Badge>
                     </div>
 
                     <div className="space-y-3">
                       <div className="flex justify-between items-center text-md">
                         <span className="text-muted-foreground">Automation</span>
                         <span className="font-semibold capitalize">
-                          {isSchedule ? "Recurring Buy" : "Price Condition Trigger"}
+                          {isSchedule ? (isOneTime ? "One-time Scheduled" : "Recurring Schedule") : "Price Limit Trigger"}
                         </span>
                       </div>
 
@@ -1381,8 +1515,8 @@ function MessageBubble({
                         <>
                           <div className="flex justify-between items-center text-md pt-2">
                             <span className="text-muted-foreground">Condition</span>
-                            <span className="font-medium text-right flex items-center gap-1.5">
-                              If <TokenBadge tokenInfo={toTokenInfo} /> {config.conditionType === "drops_below" ? "drops below" : "rises above"} ${config.targetValue}
+                            <span className="font-medium text-right flex items-center gap-1.5 text-xs sm:text-sm">
+                              If <TokenBadge tokenInfo={toTokenInfo} /> {config.conditionType?.includes("drops_below") ? "drops below or equals" : "rises above or equals"} ${config.targetValue}
                             </span>
                           </div>
                           <div className="flex justify-between items-center text-md pt-2">
@@ -1523,6 +1657,33 @@ export function ChatContent({ chatId }: ChatContentProps) {
 
   const { wallets } = useWallets();
 
+  const [elapsed, setElapsed] = React.useState<number>(0);
+
+  React.useEffect(() => {
+    let intervalId: any = null;
+    if (isThinking) {
+      const start = Date.now();
+      setElapsed(0);
+      intervalId = setInterval(() => {
+        setElapsed((Date.now() - start) / 1000);
+      }, 100);
+    } else {
+      setElapsed(0);
+    }
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [isThinking]);
+
+  const formatElapsed = (seconds: number) => {
+    if (seconds < 60) {
+      return `${seconds.toFixed(1)}s`;
+    }
+    const mins = Math.floor(seconds / 60);
+    const secs = (seconds % 60).toFixed(0);
+    return `${mins}m ${secs}s`;
+  };
+
   const handleApproveAndSign = async (intentPreview: any) => {
     if (isThinking) return;
     setIsThinking(true);
@@ -1555,7 +1716,8 @@ export function ChatContent({ chatId }: ChatContentProps) {
 
       const period = 86400; // 1 day
       const start = Math.floor(Date.now() / 1000);
-      const end = start + 30 * 24 * 3600; // 30 days
+      const expiresAtStr = intentPreview.execution?.expiresAt;
+      const end = expiresAtStr ? Math.round(new Date(expiresAtStr).getTime() / 1000) : (start + 30 * 24 * 3600);
       const salt = Math.floor(Math.random() * 10000000).toString();
       const extraData = "0x";
       const spender = intentPreview.spender || "0x8888888888888888888888888888888888888888";
@@ -1913,7 +2075,7 @@ export function ChatContent({ chatId }: ChatContentProps) {
                     <div className="flex items-center gap-6 max-w-[80%]">
                       <div className="flex items-center gap-2 text-sm font-semibold text-foreground/90">
                         <ShinyText
-                          text="Thinking..."
+                          text={`Working on it... (${formatElapsed(elapsed)})`}
                           speed={2}
                           delay={0}
                           color="#a1a1a1"
@@ -2035,8 +2197,8 @@ export function ChatContent({ chatId }: ChatContentProps) {
                   <Textarea
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
-                    placeholder="Ask Qleva anything..."
-                    className="max-h-[180px] -mt-1 overflow-y-auto focus-visible:ring-0 rounded-0 resize-none p-1 custom-scrollbar "
+                    placeholder="Ask anything..."
+                    className="max-h-[180px] md:text-md -mt-2 overflow-y-auto focus-visible:ring-0 rounded-0 resize-none p-1 custom-scrollbar "
                     style={{
                       backgroundColor: "transparent",
                       border: "0",

@@ -122,6 +122,18 @@ function AutomationCard({ automation }: { automation: any }) {
   const currentRuns = automation.execution?.currentRuns || 0;
   const volume = currentRuns * amountUsd;
 
+  // Resolve dynamic verb based on token type
+  const isFromStable = ["usdc", "usdt", "dai"].includes(fromTokenInfo.symbol?.toLowerCase());
+  const isToStable = ["usdc", "usdt", "dai"].includes(toTokenInfo.symbol?.toLowerCase());
+  let verb = "Swap";
+  if (!isFromStable && isToStable) {
+    verb = "Sell";
+  } else if (isFromStable && !isToStable) {
+    verb = "Buy";
+  }
+
+  const isOneTime = config.schedule?.mode === "once" || config.frequency === "once";
+
   const handleToggle = (e: React.MouseEvent) => {
     e.stopPropagation();
     const nextStatus = isActive ? "paused" : "active";
@@ -149,15 +161,18 @@ function AutomationCard({ automation }: { automation: any }) {
           <div className="flex justify-between items-center pb-2 border-b border-border/30">
             <h3 className="font-heading text-sm font-bold tracking-tight text-foreground/90">
               {isSchedule
-                ? (config.schedule?.mode === "once" ? "One-Time Scheduled Swap" : "Recurring Swap Strategy")
-                : "Price Condition Trigger"
+                ? (isOneTime ? `One-Time Scheduled ${verb}` : `Recurring ${verb} Strategy`)
+                : `${verb} Limit Trigger`
               }
             </h3>
             <Badge
               variant={isActive ? "default" : "secondary"}
               className={cn(
-                "text-[10px] px-2 py-0.5 capitalize font-medium",
-                isActive ? "bg-green-500/10 text-green-500 border border-green-500/20" : "bg-muted text-muted-foreground border"
+                "text-[10px] px-2 py-0.5 capitalize font-semibold border-none",
+                isActive && "bg-green-500/10 text-green-500",
+                automation.status === "completed" && "bg-amber-500/10 text-amber-500",
+                automation.status === "paused" && "bg-blue-500/10 text-blue-500",
+                automation.status === "failed" && "bg-red-500/10 text-red-500"
               )}
             >
               {automation.status}
@@ -200,8 +215,10 @@ function AutomationCard({ automation }: { automation: any }) {
               <>
                 <div className="flex justify-between items-center text-sm border-b border-border/30 pb-2.5">
                   <span className="text-muted-foreground">Trigger Condition</span>
-                  <span className="font-medium text-right capitalize">
-                    {config.conditionType?.split("_").join(" ") || "Drops below"} ${config.targetValue}
+                  <span className="font-medium text-right text-xs">
+                    If <span className="font-semibold">{toTokenInfo.symbol}</span>{" "}
+                    {config.conditionType?.includes("drops_below") ? "drops below or equals" : "rises above or equals"}{" "}
+                    ${config.targetValue}
                   </span>
                 </div>
                 <div className="flex justify-between items-center text-sm border-b border-border/30 pb-2.5">
@@ -222,7 +239,15 @@ function AutomationCard({ automation }: { automation: any }) {
               <span className="text-muted-foreground">Next Execution</span>
               <span className="font-medium flex items-center gap-1">
                 <Clock className="size-3 text-primary" />
-                {isActive && nextExecutionDate ? formatDate(nextExecutionDate) : "Paused"}
+                {automation.status === "completed"
+                  ? "None (Completed)"
+                  : automation.status === "paused"
+                    ? "Paused"
+                    : !isSchedule
+                      ? "On price trigger"
+                      : nextExecutionDate
+                        ? formatDate(nextExecutionDate)
+                        : "Not scheduled"}
               </span>
             </div>
 

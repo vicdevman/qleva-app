@@ -136,6 +136,18 @@ export default function AutomationDetailsPage() {
   const fromTokenInfo = config.fromTokenInfo || { symbol: config.fromToken || "USDC" };
   const toTokenInfo = config.toTokenInfo || { symbol: config.toToken || "ETH" };
 
+  // Resolve dynamic verb based on token type
+  const isFromStable = ["usdc", "usdt", "dai"].includes(fromTokenInfo.symbol?.toLowerCase());
+  const isToStable = ["usdc", "usdt", "dai"].includes(toTokenInfo.symbol?.toLowerCase());
+  let verb = "Swap";
+  if (!isFromStable && isToStable) {
+    verb = "Sell";
+  } else if (isFromStable && !isToStable) {
+    verb = "Buy";
+  }
+
+  const isOneTime = config.schedule?.mode === "once" || config.frequency === "once";
+
   const handleToggle = () => {
     const nextStatus = isActive ? "paused" : "active";
     toggleMutation.mutate({ id, status: nextStatus });
@@ -167,21 +179,24 @@ export default function AutomationDetailsPage() {
             <div>
               <span className="flex items-center gap-3 flex-wrap">
                 <h1 className="font-heading text-2xl font-bold tracking-tight">
-                  {isSchedule ? "Recurring Buy Strategy" : "Price Condition Trigger"}
+                  {isSchedule
+                    ? (isOneTime ? `One-Time Scheduled ${verb}` : `Recurring ${verb} Strategy`)
+                    : `${verb} Limit Trigger`
+                  }
                 </h1>
                 <Badge
                   variant={isActive ? "default" : "secondary"}
                   className={cn(
-                    "text-xs px-2.5 py-0.5 capitalize",
-                    isActive ? "bg-green-500/10 text-green-500 border border-green-500/20" : "bg-muted text-muted-foreground border"
+                    "text-xs px-2.5 py-0.5 capitalize font-semibold border-none",
+                    isActive && "bg-green-500/10 text-green-500",
+                    automation.status === "completed" && "bg-amber-500/10 text-amber-500",
+                    automation.status === "paused" && "bg-blue-500/10 text-blue-500",
+                    automation.status === "failed" && "bg-red-500/10 text-red-500"
                   )}
                 >
                   {automation.status}
                 </Badge>
               </span>
-              {/* <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
-                {automation.humanReadable || "Automated strategy co-pilot execution"}
-              </p> */}
             </div>
           </div>
         </div>
@@ -196,28 +211,13 @@ export default function AutomationDetailsPage() {
                   <h3 className="font-heading text-md font-semibold mb-4 text-foreground/80">Strategy Information</h3>
 
                   <div className="space-y-4">
-                    {/* ID */}
-                    {/* <div className="flex justify-between items-center text-sm border-b border-border/40 pb-3">
-                      <span className="text-muted-foreground">Automation ID</span>
-                      <span className="font-mono text-xs text-foreground flex items-center gap-1.5">
-                        {automation.id}
-                        <button
-                          onClick={handleCopyId}
-                          className="hover:text-primary transition-colors text-muted-foreground"
-                          title="Copy ID"
-                        >
-                          {copied ? <Check className="size-3.5 text-green-500" /> : <Copy className="size-3.5" />}
-                        </button>
-                      </span>
-                    </div> */}
-
                     {/* Strategy type */}
                     <div className="flex justify-between items-center text-sm border-b border-border/40 pb-3">
                       <span className="text-muted-foreground">Strategy Type</span>
                       <span className="font-medium capitalize">
                         {isSchedule
-                          ? (config.schedule?.mode === "once" ? "One-Time Scheduled Swap" : "Recurring Swap Strategy")
-                          : "Price Limit Trigger"
+                          ? (isOneTime ? `One-Time Scheduled ${verb}` : `Recurring ${verb} Strategy`)
+                          : `${verb} Limit Trigger`
                         }
                       </span>
                     </div>
@@ -250,8 +250,10 @@ export default function AutomationDetailsPage() {
                       <>
                         <div className="flex justify-between items-center text-sm border-b border-border/40 pb-3">
                           <span className="text-muted-foreground">Trigger Condition</span>
-                          <span className="font-medium text-right capitalize">
-                            {config.conditionType?.split("_").join(" ")} ${config.targetValue}
+                          <span className="font-medium text-right text-xs">
+                            If <span className="font-semibold">{toTokenInfo.symbol}</span>{" "}
+                            {config.conditionType?.includes("drops_below") ? "drops below or equals" : "rises above or equals"}{" "}
+                            ${config.targetValue}
                           </span>
                         </div>
                       </>
@@ -268,7 +270,15 @@ export default function AutomationDetailsPage() {
                       <span className="text-muted-foreground">Next Scheduled Execution</span>
                       <span className="font-medium flex items-center gap-1.5">
                         <Clock className="size-3.5 text-primary" />
-                        {isActive ? (automation.execution?.nextExecutionAt ? formatDate(automation.execution.nextExecutionAt) : "Not scheduled") : "Paused"}
+                        {automation.status === "completed"
+                          ? "None (Completed)"
+                          : automation.status === "paused"
+                            ? "Paused"
+                            : !isSchedule
+                              ? "On price trigger"
+                              : automation.execution?.nextExecutionAt
+                                ? formatDate(automation.execution.nextExecutionAt)
+                                : "Not scheduled"}
                       </span>
                     </div>
 
@@ -277,21 +287,26 @@ export default function AutomationDetailsPage() {
                       <span className="text-muted-foreground">Expiration Date</span>
                       <span className="font-medium flex items-center gap-1.5">
                         <Calendar className="size-3.5 text-muted-foreground" />
-                        {config.schedule?.mode === "once" ? "After execution" : formatDate(automation.execution?.expiresAt)}
+                        {formatDate(automation.execution?.expiresAt)}
                       </span>
                     </div>
                   </div>
                 </div>
 
                 {/* Permissions bounds box */}
-                <div className="bg-muted/40 border border-border/60 p-4 rounded-xl space-y-3">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-foreground/70">Qleva Co-Pilot Spend Permissions</h4>
-                  <ul className="text-xs space-y-2 text-muted-foreground list-disc pl-4">
-                    <li>Smart wallet account authorized for automated swaps</li>
-                    <li>Spend allowance capped strictly at <span className="text-foreground font-medium">{formatCurrency(config.amountUsd || 10)}</span> per execution</li>
-                    <li>Cooldown limits set to prevent duplicate frontrunning executions</li>
-                    <li>Permission period valid until <span className="text-foreground font-medium">{formatDate(automation.execution?.expiresAt)}</span></li>
-                  </ul>
+                <div className="bg-muted/40 border border-border/60 p-4 rounded-xl space-y-2">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-foreground/85">Qleva Spend Permission</h4>
+                  <div className="grid grid-cols-[75px_1fr] gap-x-2 gap-y-1.5 text-xs text-muted-foreground pt-1">
+                    <span>Allowance:</span>
+                    <span className="font-semibold text-foreground">
+                      {formatCurrency(config.amountUsd || 10)} {fromTokenInfo.symbol} per 24 Hours
+                    </span>
+                    
+                    <span>Duration:</span>
+                    <span className="text-foreground">
+                      {formatDate(automation.createdAt)} to {formatDate(automation.execution?.expiresAt)}
+                    </span>
+                  </div>
                 </div>
 
                 {/* Operations Buttons */}
