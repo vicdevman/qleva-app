@@ -1069,7 +1069,7 @@ function MessageBubble({
                         href={href}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-primary underline underline-offset-2 hover:text-primary/80 transition-colors"
+                        className="text-primary underline underline-offset-6 decoration-dotted hover:text-primary/80 transition-colors"
                       >
                         {children}
                       </a>
@@ -1952,11 +1952,11 @@ export function ChatContent({ chatId }: ChatContentProps) {
                         ? streamingSteps.slice(-2)
                         : streamingSteps
                       ).map((step) => (
-                        <div key={step.id} className="grid grid-cols-[20px_1fr] gap-3">
+                        <div key={step.id} className="grid grid-cols-[20px_1fr] gap-2">
                           {step.completed ? (
                             <Check className="size-4 text-emerald-500 mt-0.5" />
                           ) : (
-                            <Loader className="size-4 animate-spin text-primary mt-0.5" />
+                            <Loader2 className="size-4 animate-spin text-primary mt-0.5" />
                           )}
                           <span
                             className={cn(
