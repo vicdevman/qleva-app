@@ -625,8 +625,8 @@ export function EditableSwapCard({ intentPreview, chatId, onSuccess, isExpired =
   return (
     <div className="mt-10 w-full max-w-[calc(100vw)] sm:max-w-md space-y-4 px-0.5">
       {isExpired && (
-        <div className="text-xs font-semibold text-amber-500 bg-amber-500/10 p-3 rounded-2xl border border-amber-500/20">
-          ⚠️ This swap preview has expired. Please request a new swap strategy to regenerate.
+        <div className="text-xs font-semibold text-amber-500 bg-amber-500/10 p-2 rounded-xl">
+          This swap preview has expired. Please request a new swap strategy to regenerate.
         </div>
       )}
 
@@ -1077,7 +1077,7 @@ export function ScheduledDraftCard({ intentPreview, isExpired, onConfirm }: Sche
             </div>
           ) : (
             <div className="flex justify-between items-center text-md pt-2">
-              <span className="text-muted-foreground">Trigger Condition</span>
+              <span className="text-muted-foreground">Trigger</span>
               <span className="font-medium text-right flex items-center gap-1.5 text-xs sm:text-sm">
                 If <TokenBadge tokenInfo={toTokenInfo} /> {triggerConfig.conditionType?.includes("drops_below") ? "drops below or equals" : "rises above or equals"} ${triggerConfig.targetValue}
               </span>
@@ -1107,24 +1107,24 @@ export function ScheduledDraftCard({ intentPreview, isExpired, onConfirm }: Sche
           </div>
 
           {/* Cryptographic Spend Permission Security Panel */}
-          <div className="border-t border-primary/10 pt-3 mt-3 space-y-2 bg-muted/10 p-3 rounded-2xl border border-border/50">
-            <span className="text-[11px] font-bold text-foreground uppercase tracking-wider block mb-1">
-              Qleva Spend Permission
+          <div className="border-t pt-3 mt-3 space-y-2 border-border/50">
+            <span className="text-[13px] text-foreground tracking-wider block mb-2">
+              Allow Qleva to automate transactions within these limits
             </span>
-            <div className="grid grid-cols-[60px_1fr] gap-x-2 gap-y-1 text-xs text-muted-foreground">
+            <div className="grid grid-cols-[20px_1fr] gap-x-2 gap-y-1 text-xs text-muted-foreground">
               {/* <span>Spender:</span>
               <span className="font-mono text-[10px] text-foreground truncate" title={intentPreview.spender || "0x8888888888888888888888888888888888888888"}>
                 {intentPreview.spender || "0x8888888888888888888888888888888888888888"}
               </span> */}
               
-              <span>Allowance:</span>
+              <span className="flex gap-2"><Check className="size-4 text-emerald-500" /></span>
               <span className="font-semibold text-foreground">
-                {amountUsd} {fromTokenInfo.symbol} per 24 Hours
+               Spend {amountUsd} {fromTokenInfo.symbol} per 24 Hours
               </span>
               
-              <span>Duration:</span>
+              <span className="flex gap-2"><Check className="size-4 text-emerald-500" /></span>
               <span className="text-foreground">
-                {formatDate(new Date())} to {formatDate(expiresDate)}
+                Valid from {formatDate(new Date())} to {formatDate(expiresDate)}
               </span>
             </div>
           </div>
@@ -1253,12 +1253,12 @@ function MessageBubble({
                       </p>
                     ),
                     ul: ({ children }) => (
-                      <ul className="list-disc list-outside space-y-1 mb-3 ml-4 pl-2 text-[16px] text-foreground/90">
+                      <ul className="list-disc list-outside space-y-2 mb-3 ml-4 pl-2 text-[16px] text-foreground/90">
                         {children}
                       </ul>
                     ),
                     ol: ({ children }) => (
-                      <ol className="list-decimal list-outside space-y-1 mb-3 ml-4 pl-2 text-[16px] text-foreground/90">
+                      <ol className="list-decimal list-outside space-y-2 mb-3 ml-4 pl-2 text-[16px] text-foreground/90">
                         {children}
                       </ol>
                     ),
@@ -1311,7 +1311,7 @@ function MessageBubble({
                       </strong>
                     ),
                     table: ({ children }) => (
-                      <div className="overflow-x-auto w-full my-4 border border-border/30 rounded-lg">
+                      <div className="overflow-x-auto w-full my-4 border border-border/30 rounded-2xl">
                         <table className="w-full border-collapse text-sm text-left whitespace-nowrap md:whitespace-normal">
                           {children}
                         </table>
@@ -1379,8 +1379,8 @@ function MessageBubble({
                   >
                     <ThumbsDown className="size-4" />
                   </button> {message.responseDuration && (
-                    <span className="text-[10px] ml-2 text-muted-foreground select-none font-medium mr-2 self-center">
-                      Took {message.responseDuration.toFixed(1)}s
+                    <span className="text-[14px] ml-2 text-muted-foreground select-none font-medium mr-2 self-center">
+                     {message.responseDuration.toFixed(1)}s
                     </span>
                   )}
                 </>
@@ -1943,7 +1943,7 @@ export function ChatContent({ chatId }: ChatContentProps) {
     setStreamingSteps([
       {
         id: "init",
-        message: "Qleva is formulating execution script...",
+        message: "Thinking...",
         status: "init",
         completed: false,
       },
@@ -2075,7 +2075,7 @@ export function ChatContent({ chatId }: ChatContentProps) {
                     <div className="flex items-center gap-6 max-w-[80%]">
                       <div className="flex items-center gap-2 text-sm font-semibold text-foreground/90">
                         <ShinyText
-                          text={`Working on it... (${formatElapsed(elapsed)})`}
+                          text={`Working on it... ${formatElapsed(elapsed)}`}
                           speed={2}
                           delay={0}
                           color="#a1a1a1"
