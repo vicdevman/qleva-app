@@ -180,7 +180,7 @@ export function AppTopbar() {
       </div>
 
       {/* Desktop Sticky Header */}
-      <header className="hidden sticky top-0 z-30 md:flex h-14 items-center gap-3 bg-background/80 px-4 backdrop-blur-md">
+      <header className="hidden sticky top-0 z-30 md:flex h-14 items-center gap-3 bg-linear-to-b from-background via-background/80 to-transparent px-4">
         <div className="flex-1" />
 
         {/* Notifications */}
@@ -200,7 +200,7 @@ export function AppTopbar() {
         </NotificationsDropdown>
 
         {/* Portfolio Summary Pill */}
-        <div className="flex items-center gap-2 rounded-full border bg-muted/50 px-3 py-1.5">
+        <div className="flex items-center gap-2 rounded-full border bg-muted px-3 py-1.5">
           <Wallet className="size-3.5 text-muted-foreground" />
           <span className="text-sm font-medium">
             {portfolio
@@ -210,14 +210,14 @@ export function AppTopbar() {
                 }).format(portfolio.totalValue)
               : "$0.00"}
           </span>
-          {/* {portfolio && (
+          {portfolio && (
             <span
               className={`text-xs ${portfolio.dailyChangePercent >= 0 ? "text-green-500" : "text-red-500"}`}
             >
               {portfolio.dailyChangePercent >= 0 ? "+" : ""}
               {portfolio.dailyChangePercent}%
             </span>
-          )} */}
+          )}
         </div>
       </header>
     </>

@@ -233,7 +233,7 @@ export function MobileMenuDrawer({
                               handleSaveRename(chat.id);
                             }
                           }}
-                          className="w-full bg-transparent border-none outline-none focus:outline-none focus:ring-0 p-0 text-sm font-medium text-foreground"
+                          className="w-full bg-transparent border-none outline-none focus:outline-none focus:ring-0 p-0 font-medium text-foreground"
                         />
                       </div>
                     );
@@ -254,9 +254,9 @@ export function MobileMenuDrawer({
                           className="flex-1 flex items-center gap-4 px-4 py-3.5 text-sm font-medium truncate"
                         >
                           <span className="truncate pr-4">{chat.title}</span>
-                          {isActive && (
+                          {/* {isActive && (
                             <div className="size-2 rounded-full bg-primary-foreground animate-pulse" />
-                          )}
+                          )} */}
                         </Link>
                       </DrawerClose>
 

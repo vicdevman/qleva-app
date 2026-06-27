@@ -31,6 +31,8 @@ import {
   ThumbsDown,
   Loader,
   DollarSign,
+  ArrowBigDown,
+  ArrowDown,
 } from "lucide-react";
 import { AppShell } from "@/components/app/app-shell";
 import { Card, CardContent } from "@/components/ui/card";
@@ -40,7 +42,8 @@ import { Badge } from "@/components/ui/badge";
 import { useChatMessages, useSendMessage, useToggleAutomationStatus, useDeleteAutomation, usePortfolio } from "@/lib/query-hooks";
 import { useQueryClient } from "@tanstack/react-query";
 import { usePrivy, useWallets } from "@privy-io/react-auth";
-import { parseUnits } from "viem";
+import { parseUnits, createPublicClient, createWalletClient, custom } from "viem";
+import { base, baseSepolia } from "viem/chains";
 import { cn, getFriendlyScheduleDescription } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useWalletStore } from "@/stores/wallet-store";
@@ -344,6 +347,52 @@ export function EditableSwapCard({ intentPreview, chatId, onSuccess, isExpired =
   const [statusMessage, setStatusMessage] = React.useState("");
   const [errorMsg, setErrorMsg] = React.useState("");
 
+  const IS_TEST_MODE = process.env.NEXT_PUBLIC_TEST_MODE === "true";
+  const ROUTER_ADDRESS = IS_TEST_MODE
+    ? "0x94cC0AaC535CCDB3C01d6787D6413C739ae12bc4" // Base Sepolia
+    : "0x2626664c2603336E57B271c5C0b26F421741e481"; // Base Mainnet
+
+  const [estimatedGasFeeUsd, setEstimatedGasFeeUsd] = React.useState<string>("$0.15");
+
+  React.useEffect(() => {
+    const fetchGasFee = async () => {
+      try {
+        let activeWallet = null;
+        if (walletType === "connected") {
+          const storeConnectedAddr = useWalletStore.getState().wallets.find(w => w.type === "connected")?.address;
+          if (storeConnectedAddr) {
+            activeWallet = wallets.find(w => w.address.toLowerCase() === storeConnectedAddr.toLowerCase());
+          }
+          if (!activeWallet) {
+            activeWallet = wallets.find(w => w.walletClientType !== "privy");
+          }
+        }
+        if (!activeWallet) {
+          activeWallet = wallets.find((w) => w.walletClientType === "privy") ||
+            wallets.find((w) => w.walletClientType === "coinbase_wallet") ||
+            wallets[0];
+        }
+        if (!activeWallet) return;
+        const customProvider = await activeWallet.getEthereumProvider();
+        const chain = IS_TEST_MODE ? baseSepolia : base;
+        const publicClient = createPublicClient({
+          chain,
+          transport: custom(customProvider)
+        });
+        const gasPrice = await publicClient.getGasPrice();
+        const gasLimit = BigInt(130000);
+        const totalGasWei = gasPrice * gasLimit;
+        const gasEth = Number(totalGasWei) / 1e18;
+        const ethPrice = await fetchTokenPrice("0x4200000000000000000000000000000000000006") || 3500;
+        const feeUsd = gasEth * ethPrice;
+        setEstimatedGasFeeUsd(`$${feeUsd.toFixed(2)}`);
+      } catch (err) {
+        console.error("Error estimating client-side gas fee:", err);
+      }
+    };
+    fetchGasFee();
+  }, [wallets, walletType, fromAmount, fromToken]);
+
   // Search Dialog States
   const [activeSelector, setActiveSelector] = React.useState<"from" | "to" | null>(null);
   const [searchQuery, setSearchQuery] = React.useState("");
@@ -438,9 +487,22 @@ export function EditableSwapCard({ intentPreview, chatId, onSuccess, isExpired =
     setStatusMessage("Connecting to wallet...");
 
     try {
-      const activeWallet = wallets.find((w) => w.walletClientType === "privy") ||
-        wallets.find((w) => w.walletClientType === "coinbase_wallet") ||
-        wallets[0];
+      let activeWallet = null;
+      if (walletType === "connected") {
+        const storeConnectedAddr = useWalletStore.getState().wallets.find(w => w.type === "connected")?.address;
+        if (storeConnectedAddr) {
+          activeWallet = wallets.find(w => w.address.toLowerCase() === storeConnectedAddr.toLowerCase());
+        }
+        if (!activeWallet) {
+          activeWallet = wallets.find(w => w.walletClientType !== "privy");
+        }
+      }
+
+      if (!activeWallet) {
+        activeWallet = wallets.find((w) => w.walletClientType === "privy") ||
+          wallets.find((w) => w.walletClientType === "coinbase_wallet") ||
+          wallets[0];
+      }
 
       if (!activeWallet) {
         throw new Error("No active wallet connected. Please connect a wallet first.");
@@ -576,16 +638,117 @@ export function EditableSwapCard({ intentPreview, chatId, onSuccess, isExpired =
         setStatusMessage("Swap executed successfully!");
         onSuccess();
       } else {
-        setStatusMessage("Requesting Connected Wallet transaction signature...");
+        setStatusMessage("Initializing transaction client...");
+        const customProvider = await activeWallet.getEthereumProvider();
+        const chain = IS_TEST_MODE ? baseSepolia : base;
+        const publicClient = createPublicClient({
+          chain,
+          transport: custom(customProvider)
+        });
+        const walletClient = createWalletClient({
+          chain,
+          transport: custom(customProvider)
+        });
 
-        const txHash = await provider.request({
-          method: "eth_sendTransaction",
-          params: [{
-            from: activeWallet.address,
-            to: activeWallet.address,
-            value: "0x0",
-            data: "0x",
-          }]
+        const fromTokenAddress = fromToken.contractAddress;
+        const toTokenAddress = toToken.contractAddress;
+        const amountInWei = parseUnits(fromAmount, fromToken.decimals);
+        const userAddress = activeWallet.address as `0x${string}`;
+
+        // 1. ERC-20 approval check
+        const isNativeEth = fromTokenAddress.toLowerCase() === "0x0000000000000000000000000000000000000000";
+        if (!isNativeEth) {
+          setStatusMessage("Checking token allowance...");
+          const allowance = await publicClient.readContract({
+            address: fromTokenAddress as `0x${string}`,
+            abi: [
+              {
+                constant: true,
+                inputs: [
+                  { name: "_owner", type: "address" },
+                  { name: "_spender", type: "address" }
+                ],
+                name: "allowance",
+                outputs: [{ name: "", type: "uint256" }],
+                type: "function"
+              }
+            ],
+            functionName: "allowance",
+            args: [userAddress, ROUTER_ADDRESS]
+          }) as bigint;
+
+          if (allowance < amountInWei) {
+            setStatusMessage(`Approving Swap Router to spend your ${fromToken.symbol}...`);
+            const approveHash = await walletClient.writeContract({
+              address: fromTokenAddress as `0x${string}`,
+              abi: [
+                {
+                  inputs: [
+                    { name: "spender", type: "address" },
+                    { name: "amount", type: "uint256" }
+                  ],
+                  name: "approve",
+                  outputs: [{ name: "", type: "boolean" }],
+                  type: "function"
+                }
+              ],
+              functionName: "approve",
+              account: userAddress,
+              args: [ROUTER_ADDRESS, amountInWei]
+            });
+            setStatusMessage("Waiting for approval confirmation...");
+            await publicClient.waitForTransactionReceipt({ hash: approveHash });
+          }
+        }
+
+        // 2. Perform exactInputSingle swap
+        setStatusMessage(`Requesting Uniswap swap transaction signature...`);
+        let amountOutMin = BigInt(0);
+        const priceIn = fromTokenPrice;
+        const priceOut = toTokenPrice;
+        if (priceIn && priceOut) {
+          const expectedOut = (parseFloat(fromAmount) * priceIn) / priceOut;
+          const minOut = expectedOut * 0.995; // 0.5% slippage
+          amountOutMin = parseUnits(minOut.toFixed(toToken.decimals > 6 ? 6 : toToken.decimals), toToken.decimals);
+        }
+
+        const swapParams = {
+          tokenIn: fromTokenAddress as `0x${string}`,
+          tokenOut: toTokenAddress as `0x${string}`,
+          fee: 3000,
+          recipient: userAddress,
+          amountIn: amountInWei,
+          amountOutMinimum: amountOutMin,
+          sqrtPriceLimitX96: BigInt(0),
+        };
+
+        const txHash = await walletClient.writeContract({
+          address: ROUTER_ADDRESS,
+          abi: [
+            {
+              inputs: [
+                {
+                  components: [
+                    { name: "tokenIn", type: "address" },
+                    { name: "tokenOut", type: "address" },
+                    { name: "fee", type: "uint24" },
+                    { name: "recipient", type: "address" },
+                    { name: "amountIn", type: "uint256" },
+                    { name: "amountOutMinimum", type: "uint256" },
+                    { name: "sqrtPriceLimitX96", type: "uint160" }
+                  ],
+                  name: "params",
+                  type: "tuple"
+                }
+              ],
+              name: "exactInputSingle",
+              outputs: [{ name: "amountOut", type: "uint256" }],
+              type: "function"
+            }
+          ],
+          functionName: "exactInputSingle",
+          account: userAddress,
+          args: [swapParams]
         });
 
         setStatusMessage("Logging Connected Wallet swap execution...");
@@ -762,7 +925,7 @@ export function EditableSwapCard({ intentPreview, chatId, onSuccess, isExpired =
               className={cn(
                 "flex-1 py-3 text-xs font-bold rounded-xl transition-all border cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed",
                 walletType === "smart"
-                  ?  "bg-[#ffce4842]/50 text-foreground border-none"
+                  ? "bg-[#ffce48]/20 text-foreground border-none"
                   : "bg-muted/30 text-muted-foreground border-none hover:bg-muted/80 hover:text-foreground"
               )}
             >
@@ -775,7 +938,7 @@ export function EditableSwapCard({ intentPreview, chatId, onSuccess, isExpired =
               className={cn(
                 "flex-1 py-3 text-xs font-bold rounded-xl transition-all border cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed",
                 walletType === "connected"
-                  ? "bg-[#ffce4842]/50 text-foreground border-none"
+                  ? "bg-[#ffce48]/20 text-foreground border-none"
                   : "bg-muted/30 text-muted-foreground border-none hover:bg-muted/80 hover:text-foreground"
               )}
             >
@@ -812,19 +975,19 @@ export function EditableSwapCard({ intentPreview, chatId, onSuccess, isExpired =
         </div>
         <div className="flex justify-between items-center">
           <span className="text-muted-foreground font-medium">Estimated Network Fee</span>
-          <span className="font-bold text-foreground">$0.15</span>
+          <span className="font-bold text-foreground">{estimatedGasFeeUsd}</span>
         </div>
       </div>
 
       {/* Error / Status Messages */}
       {statusMessage && (
-        <div className="text-xs font-medium text-primary flex items-center gap-1.5 bg-primary/5 p-3 rounded-2xl border border-primary/10">
+        <div className="text-xs font-medium text-primary break-words flex items-center gap-1.5 bg-primary/5 p-3 rounded-2xl border border-border">
           <Loader2 className="size-3.5 animate-spin" />
           {statusMessage}
         </div>
       )}
       {errorMsg && (
-        <div className="text-xs font-medium text-red-500 bg-red-500/5 p-3 rounded-2xl border border-red-500/10">
+        <div className="text-xs font-medium text-red-500 break-words max-h-20 overflow-y-auto  bg-red-500/5 p-3 rounded-xl border border-red-500/10">
           {errorMsg}
         </div>
       )}
@@ -938,10 +1101,10 @@ export function ScheduledDraftCard({ intentPreview, isExpired, onConfirm }: Sche
   const triggerConfig = intentPreview.trigger?.config || {};
   const isSchedule = intentPreview.trigger?.type === "schedule";
   const [expiryDays, setExpiryDays] = React.useState<number>(30);
-  
+
   // Resolve default time from triggerConfig.schedule?.startDate
   const initialDate = triggerConfig.schedule?.startDate ? new Date(triggerConfig.schedule.startDate) : new Date();
-  
+
   // Hours and minutes representation
   const formatHourMin = (date: Date): string => {
     const hours = date.getHours().toString().padStart(2, '0');
@@ -952,14 +1115,14 @@ export function ScheduledDraftCard({ intentPreview, isExpired, onConfirm }: Sche
 
   const fromTokenInfo = triggerConfig.fromTokenInfo || { symbol: triggerConfig.fromToken || "USDC", contractAddress: "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913" };
   const toTokenInfo = triggerConfig.toTokenInfo || { symbol: triggerConfig.toToken || "ETH", contractAddress: "0x4200000000000000000000000000000000000006" };
-  
+
   const amountUsd = triggerConfig.amountUsd || 10;
   const frequency = triggerConfig.frequency || "daily";
 
   // Re-calculate the preview and config details dynamically based on state
   const getUpdatedPreview = () => {
     const updated = JSON.parse(JSON.stringify(intentPreview));
-    
+
     // Update expiresAt based on selected expiryDays
     const expiryMs = expiryDays * 24 * 3600 * 1000;
     const expiresDate = new Date(Date.now() + expiryMs);
@@ -973,7 +1136,7 @@ export function ScheduledDraftCard({ intentPreview, isExpired, onConfirm }: Sche
       const newStartDate = new Date(updated.trigger.config.schedule.startDate || Date.now());
       newStartDate.setHours(h, m, 0, 0);
       updated.trigger.config.schedule.startDate = newStartDate.toISOString();
-      
+
       // Update humanReadable time formatting
       const formatTimeText = (date: Date): string => {
         let hours = date.getHours();
@@ -984,9 +1147,9 @@ export function ScheduledDraftCard({ intentPreview, isExpired, onConfirm }: Sche
         const minsStr = mins < 10 ? "0" + mins : mins;
         return `${hours}:${minsStr} ${ampm}`;
       };
-      
+
       const newTimeText = `at ${formatTimeText(newStartDate)}`;
-      
+
       // Dynamic verb resolution
       const isFromStable = ["usdc", "usdt", "dai"].includes(fromTokenInfo.symbol?.toLowerCase());
       const isToStable = ["usdc", "usdt", "dai"].includes(toTokenInfo.symbol?.toLowerCase());
@@ -996,19 +1159,19 @@ export function ScheduledDraftCard({ intentPreview, isExpired, onConfirm }: Sche
       } else if (isFromStable && !isToStable) {
         verb = "Buy";
       }
-      
+
       const prevMode = updated.trigger.config.schedule.mode;
       const daysOfWeek = updated.trigger.config.schedule.recurrence?.daysOfWeek;
       const daysText = daysOfWeek && daysOfWeek.length > 0 ? ` on ${daysOfWeek.map((d: string) => d.charAt(0).toUpperCase() + d.slice(1)).join(", ")}` : "";
       const frequencyText = prevMode === "once" ? "once" : (frequency || "daily");
-      
+
       if (prevMode === "once") {
         updated.preview.humanReadable = `${verb} $${amountUsd} of ${toTokenInfo.symbol} with ${fromTokenInfo.symbol} once on ${triggerConfig.startDateText} ${newTimeText}`;
       } else {
         updated.preview.humanReadable = `${verb} $${amountUsd} of ${toTokenInfo.symbol} with ${fromTokenInfo.symbol} ${frequencyText}${daysText} ${newTimeText}`;
       }
     }
-    
+
     return updated;
   };
 
@@ -1028,27 +1191,27 @@ export function ScheduledDraftCard({ intentPreview, isExpired, onConfirm }: Sche
   }
 
   const isOneTime = triggerConfig.mode === "once" || triggerConfig.frequency === "once";
-  const cardTitle = isSchedule 
-    ? (isOneTime ? `One-time Scheduled ${verb}` : `Recurring ${verb}`) 
+  const cardTitle = isSchedule
+    ? (isOneTime ? `One-time Scheduled ${verb}` : `Recurring ${verb}`)
     : `${verb} Limit Trigger`;
 
   const updatedPreview = getUpdatedPreview();
   const expiresDate = new Date(updatedPreview.execution.expiresAt);
   const formatDate = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-  
+
   return (
-    <Card className="overflow-hidden bg-background border border-sidebar-border shadow-sm backdrop-blur-md rounded-3xl mt-10 w-full max-w-[calc(100vw)] sm:max-w-md">
+    <Card className="overflow-hidden bg-background border-0 border-sidebar-border shadow-sm backdrop-blur-md rounded-3xl mt-10 w-full max-w-[calc(100vw)] sm:max-w-md">
       <CardContent className="">
         {isExpired && (
           <div className="mb-4 text-xs font-semibold text-amber-500 bg-amber-500/10 p-2 rounded-lg border-amber-500/20">
             This card has expired. Please request a new strategy to regenerate.
           </div>
         )}
-        
+
         <div className="flex items-center gap-2 font-semibold mb-4 text-lg">
           {cardTitle}
         </div>
-        
+
         <div className="space-y-3">
           <div className="flex justify-between items-center text-md">
             <span className="text-muted-foreground">Action</span>
@@ -1116,12 +1279,12 @@ export function ScheduledDraftCard({ intentPreview, isExpired, onConfirm }: Sche
               <span className="font-mono text-[10px] text-foreground truncate" title={intentPreview.spender || "0x8888888888888888888888888888888888888888"}>
                 {intentPreview.spender || "0x8888888888888888888888888888888888888888"}
               </span> */}
-              
+
               <span className="flex gap-2"><Check className="size-4 text-emerald-500" /></span>
               <span className="font-semibold text-foreground">
-               Spend {amountUsd} {fromTokenInfo.symbol} per 24 Hours
+                Spend {amountUsd} {fromTokenInfo.symbol} per 24 Hours
               </span>
-              
+
               <span className="flex gap-2"><Check className="size-4 text-emerald-500" /></span>
               <span className="text-foreground">
                 Valid from {formatDate(new Date())} to {formatDate(expiresDate)}
@@ -1253,12 +1416,12 @@ function MessageBubble({
                       </p>
                     ),
                     ul: ({ children }) => (
-                      <ul className="list-disc list-outside space-y-2 mb-3 ml-4 pl-2 text-[16px] text-foreground/90">
+                      <ul className="list-disc list-outside space-y-3 mb-3 ml-4 pl-2 text-[16px] text-foreground/90">
                         {children}
                       </ul>
                     ),
                     ol: ({ children }) => (
-                      <ol className="list-decimal list-outside space-y-2 mb-3 ml-4 pl-2 text-[16px] text-foreground/90">
+                      <ol className="list-decimal list-outside space-y-3 mb-3 ml-4 pl-2 text-[16px] text-foreground/90">
                         {children}
                       </ol>
                     ),
@@ -1364,7 +1527,7 @@ function MessageBubble({
 
               {!isUser && (
                 <>
-                 
+
                   <button
                     className=" ml-2 group-hover:opacity-100 transition-opacity bg-transparent flex items-center justify-center p-1 rounded-full text-muted-foreground hover:text-foreground"
                     aria-label="Like message"
@@ -1380,7 +1543,7 @@ function MessageBubble({
                     <ThumbsDown className="size-4" />
                   </button> {message.responseDuration && (
                     <span className="text-[14px] ml-2 text-muted-foreground select-none font-medium mr-2 self-center">
-                     {message.responseDuration.toFixed(1)}s
+                      {message.responseDuration.toFixed(1)}s
                     </span>
                   )}
                 </>
@@ -1392,13 +1555,13 @@ function MessageBubble({
             const CARD_EXPIRY_MS = 10 * 60 * 1000;
             const isExpired = Date.now() - new Date(message.timestamp).getTime() > CARD_EXPIRY_MS;
             const isSwap = message.intentPreview.trigger?.type === "swap";
-            
+
             if (isSwap) {
               return (
                 <EditableSwapCard
                   intentPreview={message.intentPreview}
                   chatId={chatId}
-                  onSuccess={() => {}}
+                  onSuccess={() => { }}
                   isExpired={isExpired}
                 />
               );
@@ -1448,7 +1611,7 @@ function MessageBubble({
 
             return (
               <div className="mt-10 w-full max-w-[calc(100vw)] sm:max-w-md px-0.5">
-                <Card className="overflow-hidden bg-background border border-sidebar-border shadow-sm backdrop-blur-md rounded-3xl">
+                <Card className="overflow-hidden bg-background border-0 border-sidebar-border shadow-sm backdrop-blur-md rounded-3xl">
                   <CardContent className="">
                     <div className="flex justify-between items-center mb-4 pb-1">
                       <div className="flex items-center gap-2 font-semibold text-lg">
@@ -1561,13 +1724,13 @@ function MessageBubble({
                       </div> */}
                     </div>
 
-                    <div className="mt-5 flex flex-col gap-2 border-t border-primary/10 pt-4">
+                    <div className="mt-5 flex flex-col gap-2 border-t border-border pt-4">
                       <Button
                         size="lg"
                         className="w-full flex justify-center gap-4 h-10 text-md font-bold bg-primary rounded-xl text-primary-foreground"
                         onClick={() => router.push(`/automations/${auto.id}`)}
                       >
-                        View Automation <ArrowRight/>
+                        View Automation <ArrowRight />
                       </Button>
                       {/* <div className="flex gap-2">
                         <Button
@@ -1651,7 +1814,9 @@ export function ChatContent({ chatId }: ChatContentProps) {
   const [isThinking, setIsThinking] = React.useState(false);
   const [attachedImage, setAttachedImage] = React.useState<string | null>(null);
   const scrollRef = React.useRef<HTMLDivElement>(null);
+  const lastAiMessageRef = React.useRef<HTMLDivElement | null>(null);
   const messagesContainerRef = React.useRef<HTMLDivElement | null>(null);
+  const abortControllerRef = React.useRef<AbortController | null>(null);
   const [showScrollToBottom, setShowScrollToBottom] = React.useState(false);
   const isMobile = useIsMobile()
 
@@ -1697,10 +1862,19 @@ export function ChatContent({ chatId }: ChatContentProps) {
     ]);
 
     try {
-      // Prioritize Privy embedded wallet to ensure social login users sign via Privy
-      const activeWallet = wallets.find((w) => w.walletClientType === "privy") ||
-        wallets.find((w) => w.walletClientType === "coinbase_wallet" || w.address.toLowerCase() === intentPreview.smartWalletAddress.toLowerCase()) ||
-        wallets[0];
+      let activeWallet = null;
+      const storeConnectedAddr = useWalletStore.getState().wallets.find(w => w.type === "connected")?.address;
+      if (storeConnectedAddr) {
+        activeWallet = wallets.find(w => w.address.toLowerCase() === storeConnectedAddr.toLowerCase());
+      }
+      if (!activeWallet) {
+        activeWallet = wallets.find(w => w.walletClientType !== "privy");
+      }
+      if (!activeWallet) {
+        activeWallet = wallets.find((w) => w.walletClientType === "privy") ||
+          wallets.find((w) => w.walletClientType === "coinbase_wallet" || w.address.toLowerCase() === intentPreview.smartWalletAddress.toLowerCase()) ||
+          wallets[0];
+      }
 
       if (!activeWallet) {
         throw new Error("No active wallet connected. Please connect a wallet first.");
@@ -1900,7 +2074,11 @@ export function ChatContent({ chatId }: ChatContentProps) {
   }, [chatId, dummyMessages]);
 
   React.useEffect(() => {
-    if (scrollRef.current) {
+    // When AI responds, scroll to the top of the last AI message so the user
+    // sees the beginning of the response, not the end.
+    if (lastAiMessageRef.current) {
+      lastAiMessageRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    } else if (scrollRef.current) {
       scrollRef.current.scrollIntoView({ behavior: "smooth" });
     }
   }, [messages, streamingSteps, isThinking]);
@@ -1911,7 +2089,7 @@ export function ChatContent({ chatId }: ChatContentProps) {
     if (!el) return;
 
     const onScroll = () => {
-      const threshold = 120; // px
+      const threshold = 200; // px
       const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight <= threshold;
       setShowScrollToBottom(!atBottom);
     };
@@ -1921,6 +2099,15 @@ export function ChatContent({ chatId }: ChatContentProps) {
     onScroll();
     return () => el.removeEventListener("scroll", onScroll);
   }, [messages]);
+
+  const handleStop = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    setIsThinking(false);
+    setStreamingSteps([]);
+  };
 
   const handleSend = async (
     text: string = input,
@@ -1950,6 +2137,10 @@ export function ChatContent({ chatId }: ChatContentProps) {
     ]);
     setIsThinking(true);
 
+    // Create a fresh AbortController for this request
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     try {
       const token = await getAccessToken();
       const baseUrl =
@@ -1964,6 +2155,7 @@ export function ChatContent({ chatId }: ChatContentProps) {
             Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({ message: text }),
+          signal: controller.signal,
         });
 
         if (!response.ok) {
@@ -1998,6 +2190,7 @@ export function ChatContent({ chatId }: ChatContentProps) {
               Authorization: `Bearer ${token}`,
             },
             body: JSON.stringify({ message: text }),
+            signal: controller.signal,
           },
         );
 
@@ -2016,7 +2209,13 @@ export function ChatContent({ chatId }: ChatContentProps) {
           return finalMessages;
         });
       }
-    } catch (error) {
+    } catch (error: any) {
+      // Ignore abort errors — user intentionally stopped
+      if (error?.name === "AbortError") {
+        setIsThinking(false);
+        setStreamingSteps([]);
+        return;
+      }
       console.error("[ChatContent] API execution error:", error);
       setIsThinking(false);
       setStreamingSteps([]);
@@ -2025,10 +2224,12 @@ export function ChatContent({ chatId }: ChatContentProps) {
         id: `err_${Date.now()}`,
         role: "assistant",
         content:
-          "⚠️ **System Communication Issue**\n\nI was unable to establish a secure link with the decentralized execution node. Please make sure the service is online and try again.",
+          "⚠️ **System Communication Issue**\n\nI was unable to establish a secure link with the decentralized execution node. Please try again.",
         timestamp: new Date().toISOString(),
       };
       setMessages((prev) => [...prev, errorMessage]);
+    } finally {
+      abortControllerRef.current = null;
     }
   };
 
@@ -2036,7 +2237,7 @@ export function ChatContent({ chatId }: ChatContentProps) {
 
   return (
     <AppShell>
-      <div className="relative -mt-2 md:-mt-4 flex md:h-[calc(100svh-4rem)] w-full flex-col overflow-hidden bg-background">
+      <div className="relative -mt-2 md:-mt-16 -mt-20 flex h-[calc(100svh-0rem)] md:h-[calc(100svh-1rem)] w-full flex-col overflow-hidden bg-background">
         <AnimatePresence>
           {!hasMessages && !chatId ? (
             <motion.div
@@ -2045,7 +2246,7 @@ export function ChatContent({ chatId }: ChatContentProps) {
               exit={{ opacity: 0, y: -20 }}
               className="flex-1 flex flex-col items-center p-4 text-center z-0"
             >
-              <motion.div className="mt-18 md:16">
+              <motion.div className="mt-26 max-md:mt-36">
                 <h1 className="text-3xl font-bold tracking-tight mb-2">
                   How can I help you?
                 </h1>
@@ -2057,19 +2258,27 @@ export function ChatContent({ chatId }: ChatContentProps) {
             </motion.div>
           ) : (
             <div ref={messagesContainerRef} className="flex-1 overflow-y-auto scroll-smooth no-scrollbar">
-              <div className="mx-auto max-w-4xl pb-30">
-                {messages.map((msg) => (
-                  <MessageBubble
-                    key={msg.id}
-                    message={msg}
-                    chatId={chatId}
-                    onConfirm={(intentPreview) => handleApproveAndSign(intentPreview)}
-                    onToggleStatus={(id, status) => toggleMutation.mutate({ id, status })}
-                    onDelete={(id) => deleteMutation.mutate(id)}
-                    isPendingToggle={toggleMutation.isPending}
-                    isPendingDelete={deleteMutation.isPending}
-                  />
-                ))}
+              <div className="mx-auto max-w-4xl pb-30 px-1 pt-15">
+                {messages.map((msg, idx) => {
+                  const isLastAi = msg.role === "assistant" && idx === messages.length - 1;
+                  return (
+                     <div
+                      key={msg.id}
+                      ref={isLastAi ? lastAiMessageRef : undefined}
+                      style={isLastAi ? { scrollMarginTop: "60px" } : undefined}
+                    >
+                      <MessageBubble
+                        message={msg}
+                        chatId={chatId}
+                        onConfirm={(intentPreview) => handleApproveAndSign(intentPreview)}
+                        onToggleStatus={(id, status) => toggleMutation.mutate({ id, status })}
+                        onDelete={(id) => deleteMutation.mutate(id)}
+                        isPendingToggle={toggleMutation.isPending}
+                        isPendingDelete={deleteMutation.isPending}
+                      />
+                    </div>
+                  );
+                })}
                 {isThinking && streamingSteps.length > 0 && (
                   <div onClick={() => setStreamingCollapsed((s) => !s)} className="cursor-pointer flex flex-col gap-2 w-full max-w-3xl mx-auto mt-4 px-0 md:px-0">
                     <div className="flex items-center gap-6 max-w-[80%]">
@@ -2109,7 +2318,7 @@ export function ChatContent({ chatId }: ChatContentProps) {
                       </button>
                     </div>
 
-                    <div className="flex flex-col gap-2 border-white/5 max-w-[80%]">
+                    <div className="flex flex-col gap-2 border-white/5">
                       {(streamingCollapsed
                         ? streamingSteps.slice(-2)
                         : streamingSteps
@@ -2141,21 +2350,7 @@ export function ChatContent({ chatId }: ChatContentProps) {
           )}
         </AnimatePresence>
 
-        {/* Scroll-to-bottom button */}
-        {showScrollToBottom && (
-          <div className="fixed md:right-8 z-400" style={{ bottom: 120 }}>
-            <Button
-              variant="secondary"
-              size="icon-lg"
-              onClick={() => scrollRef.current?.scrollIntoView({ behavior: "smooth" })}
-              className="rounded-full bg-primary text-primary-foreground shadow-lg p-2"
-              aria-label="Scroll to latest"
-              title="Scroll to latest"
-            >
-              <ChevronDown className="size-5" />
-            </Button>
-          </div>
-        )}
+
 
         {/* Input Area */}
         <div
@@ -2163,9 +2358,31 @@ export function ChatContent({ chatId }: ChatContentProps) {
             "fixed md:absolute left-0 right-0 z-20 px-3 bg-linear-to-b from-background/10 rounded-3xl via-background to-background md:pb-2 pb-4",
             hasMessages || isMobile || chatId
               ? "bottom-0 md:bottom-0"
-              : "top-100 md:top-80 -translate-y-1/2",
+              : "top-100 md:top-90 -translate-y-1/2",
           )}
         >
+          {/* Scroll-to-bottom button */}
+          <AnimatePresence>
+            {showScrollToBottom && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8, y: 4 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.8, y: 4 }}
+                transition={{ duration: 0.15 }}
+                className="absolute right-4 md:right-2 z-50"
+                style={{ bottom: isMobile ? 130 : 110 }}
+              >
+                <button
+                  onClick={() => scrollRef.current?.scrollIntoView({ behavior: "smooth" })}
+                  aria-label="Scroll to latest"
+                  title="Scroll to latest"
+                  className="flex items-center justify-center w-8 h-8 rounded-2xl bg-secondary border border-border/60 text-muted-foreground shadow-md active:scale-90 transition-transform duration-100"
+                >
+                  <ArrowDown className="size-4" />
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
           <div
             className={`mx-auto w-full ${hasMessages || chatId ? "max-w-3xl" : "max-w-2xl"}`}
           >
@@ -2175,7 +2392,7 @@ export function ChatContent({ chatId }: ChatContentProps) {
                 initial={{ opacity: 0, y: 6 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.05 }}
-                className="mb-3 flex justify-start overflow-scroll gap-2 max-w-2xl mx-auto px-2"
+                className="mb-3 flex justify-start overflow-scroll gap-2 max-w-2xl mx-auto px-2  no-scrollbar"
               >
                 {suggestionChips.map((chip, i) => (
                   <Button
@@ -2191,14 +2408,14 @@ export function ChatContent({ chatId }: ChatContentProps) {
                 ))}
               </motion.div>
             )}
-            <Card className="overflow-hidden border bg-sidebar text-sidebar-foreground border-sidebar-border rounded-3xl ">
+            <Card className="overflow-hidden border-0 bg-sidebar text-sidebar-foreground border-sidebar-border rounded-3xl ">
               <CardContent className="p-0">
                 <div className="flex items-end gap-3 px-3">
                   <Textarea
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     placeholder="Ask anything..."
-                    className="max-h-[180px] md:text-md -mt-2 overflow-y-auto focus-visible:ring-0 rounded-0 resize-none p-1 custom-scrollbar "
+                    className="max-h-[180px] md:text-md -mt-1 overflow-y-auto focus-visible:ring-0 rounded-0 resize-none p-1 custom-scrollbar "
                     style={{
                       backgroundColor: "transparent",
                       border: "0",
@@ -2211,13 +2428,41 @@ export function ChatContent({ chatId }: ChatContentProps) {
                     }}
                   />
                   <div className="flex items-center gap-4 -mb-1">
-                    <Button
-                      size="icon-lg"
-                      onClick={() => handleSend()}
-                      disabled={(!input.trim() && !attachedImage) || isThinking}
-                    >
-                      <ArrowUp className="size-5 font-bold" />
-                    </Button>
+                    <AnimatePresence mode="wait" initial={false}>
+                      {isThinking ? (
+                        <motion.button
+                          key="stop"
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.8 }}
+                          transition={{ duration: 0.05 }}
+                          onClick={handleStop}
+                          aria-label="Stop generating"
+                          title="Stop generating"
+                        >
+                          <Button size="icon-lg" variant="outline" className="hover:bg-destructive hover:text-white ">
+                            {/* Filled square stop icon */}
+                            <span className="block w-3 h-3 rounded-[2px] bg-primary" />
+                          </Button>
+                        </motion.button>
+                      ) : (
+                        <motion.div
+                          key="send"
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.8 }}
+                          transition={{ duration: 0.05 }}
+                        >
+                          <Button
+                            size="icon-lg"
+                            onClick={() => handleSend()}
+                            disabled={!input.trim() && !attachedImage}
+                          >
+                            <ArrowUp className="size-5 font-bold" />
+                          </Button>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
                 </div>
               </CardContent>
@@ -2238,7 +2483,7 @@ export function ChatContent({ chatId }: ChatContentProps) {
               >
                 {suggestionChips.map((chip, i) => (
                   <Button
-                    key={i}  
+                    key={i}
                     variant="secondary"
                     size="sm"
                     className="h-9 md:h-9 rounded-xl bg-card backdrop-blur-md border-border/50 transition-all gap-2"

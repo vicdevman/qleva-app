@@ -94,22 +94,22 @@ export function MobileProfileDrawer({
   return (
     <Drawer open={open} onOpenChange={setOpen}>
       <DrawerContent className="h-[80vh] outline-0 bg-background/95 backdrop-blur-xl border-t border-border">
-        <DrawerHeader className="pb-3 border-b border-border">
+        {/* <DrawerHeader className="pb-3 border-b border-border">
           <div className="flex items-center justify-between px-1">
             <div className="flex items-center gap-3">
               <img
-                src="/qleva-brand/new-logo-primary.png"
+                src="/qleva-brand/qleva-drak.png"
                 alt="logo"
                 className="w-7 h-7 object-contain"
               />
-              <span className="font-heading text-2xl font-bold tracking-tight text-foreground">
+              <span className="font-heading text-xl font-bold tracking-tight text-foreground">
                 Qleva
               </span>
             </div>
 
             <span className="bg-card p-2 rounded-lg" onClick={() => setOpen(false)}><X /></span>
           </div>
-        </DrawerHeader>
+        </DrawerHeader> */}
 
         <div className="flex-1 overflow-auto px-4 py-6 space-y-6">
           {/* User Profile Card */}

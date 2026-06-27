@@ -422,7 +422,7 @@ export function AppSidebar() {
           </DropdownMenuTrigger>
           <DropdownMenuContent
             side="top"
-            className="w-[--radix-dropdown-menu-trigger-width] min-w-56 text-muted-foreground hover:text-foreground"
+            className="w-[--radix-dropdown-menu-trigger-width] min-w-56 text-muted-foreground"
             align="end"
           >
             <DropdownMenuLabel className="p-0 font-normal">
