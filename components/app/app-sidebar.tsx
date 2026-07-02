@@ -505,7 +505,7 @@ export function AppSidebar() {
           if (!open) setDeleteConfirmChatId(null);
         }}
       >
-        <DialogContent className="max-w-[360px] p-5 rounded-2xl">
+        <DialogContent className="max-w-[360px] rounded-2xl">
           <DialogHeader>
             <DialogTitle className="text-lg font-semibold text-foreground">
               Delete Conversation?
@@ -514,7 +514,7 @@ export function AppSidebar() {
               This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter className="mt-6 flex flex-row justify-end gap-2 border-t-0 p-0 bg-transparent">
+          <DialogFooter className="mt-6 flex flex-row justify-end gap-2 border-t-0 p-2 bg-transparent">
             <Button
               variant="outline"
               onClick={() => setDeleteConfirmChatId(null)}

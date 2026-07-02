@@ -136,6 +136,15 @@ export default function AutomationDetailsPage() {
   const fromTokenInfo = config.fromTokenInfo || { symbol: config.fromToken || "USDC" };
   const toTokenInfo = config.toTokenInfo || { symbol: config.toToken || "ETH" };
 
+  const getMonitoredTokenInfo = (cfg: any, fromInfo: any, toInfo: any) => {
+    if (cfg.monitoredTokenInfo) return cfg.monitoredTokenInfo;
+    const isFromStable = ["usdc", "usdt", "dai"].includes(fromInfo.symbol?.toLowerCase());
+    const isToStable = ["usdc", "usdt", "dai"].includes(toInfo.symbol?.toLowerCase());
+    if (isToStable && !isFromStable) return fromInfo;
+    return toInfo;
+  };
+  const monitoredTokenInfo = getMonitoredTokenInfo(config, fromTokenInfo, toTokenInfo);
+
   // Resolve dynamic verb based on token type
   const isFromStable = ["usdc", "usdt", "dai"].includes(fromTokenInfo.symbol?.toLowerCase());
   const isToStable = ["usdc", "usdt", "dai"].includes(toTokenInfo.symbol?.toLowerCase());
@@ -251,7 +260,7 @@ export default function AutomationDetailsPage() {
                         <div className="flex justify-between items-center text-sm border-b border-border/40 pb-3">
                           <span className="text-muted-foreground">Trigger Condition</span>
                           <span className="font-medium text-right text-xs">
-                            If <span className="font-semibold">{toTokenInfo.symbol}</span>{" "}
+                            If <span className="font-semibold">{monitoredTokenInfo.symbol}</span>{" "}
                             {config.conditionType?.includes("drops_below") ? "drops below or equals" : "rises above or equals"}{" "}
                             ${config.targetValue}
                           </span>

@@ -60,19 +60,19 @@ export default function AuthPage() {
               <Button
                 onClick={login}
                 size="lg"
-                className="w-[95%] h-12 text-base font-semibold transition-all rounded-3xl"
+                className="w-[95%] h-12 text-base font-semibold transition-all rounded-2xl"
               >
                 Sign In / Connect
               </Button>
             )}
 
-            <p className="mt-8 text-xs text-muted-foreground max-w-xs text-center leading-loose">
+            {/* <p className="mt-8 text-xs text-muted-foreground max-w-xs text-center leading-loose">
               By connecting your wallet, you agree to our <br />{" "}
               <Link href="/terms" className="text-primary underline">
                 Terms of Service
               </Link>{" "}
               and <Link href="privacy" className="text-primary underline">Privacy Policy</Link>
-            </p>
+            </p> */}
           </div>
         </div>
       </motion.div>

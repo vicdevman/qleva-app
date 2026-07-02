@@ -1,9 +1,12 @@
 "use client";
 
 import * as React from "react";
-import { usePrivy } from "@privy-io/react-auth";
+import { usePrivy, useWallets, toViemAccount } from "@privy-io/react-auth";
 import { useAuthStore } from "@/stores/auth-store";
 import { useWalletStore } from "@/stores/wallet-store";
+import { toMetaMaskSmartAccount, Implementation } from "@metamask/smart-accounts-kit";
+import { createPublicClient, createWalletClient, custom } from "viem";
+import { baseSepolia, base } from "viem/chains";
 
 interface UserProfileData {
   did: string;
@@ -21,7 +24,7 @@ interface UserProfileData {
   lastLoginAt: string;
 }
 
-export function extractUserProfile(user: any): Omit<UserProfileData, "lastLoginAt"> {
+export function extractUserProfile(user: any, resolvedSmartWalletAddress: string | null): Omit<UserProfileData, "lastLoginAt"> {
   if (!user) {
     return {
       did: "",
@@ -38,7 +41,7 @@ export function extractUserProfile(user: any): Omit<UserProfileData, "lastLoginA
     };
   }
 
-  // Extract active address using the exact same logic as in app-sidebar.tsx
+  // Extract active address
   const activeAddress = user.wallet?.address || (user as any)?.wallets?.[0]?.address || "";
 
   // Identify if user logged in via a social/oauth account
@@ -120,8 +123,8 @@ export function extractUserProfile(user: any): Omit<UserProfileData, "lastLoginA
     createdAt: user.createdAt?.toString() || new Date().toISOString(),
     email: email || (googleAccount?.email || githubAccount?.email || null),
     walletAddress,
-    smartWalletAddress: user.smartWallet?.address || null,
-    smartWalletType: user.smartWallet?.type || null,
+    smartWalletAddress: resolvedSmartWalletAddress,
+    smartWalletType: resolvedSmartWalletAddress ? "metamask-hybrid" : null,
     walletType: isSocialUser 
       ? null 
       : (user.wallet?.walletClientType || (user as any)?.wallets?.[0]?.walletClientType || null),
@@ -135,15 +138,84 @@ export function extractUserProfile(user: any): Omit<UserProfileData, "lastLoginA
 
 export function SessionSync() {
   const { ready, authenticated, user } = usePrivy();
+  const { wallets } = useWallets();
   const { setUser, setAuthenticated, logout: localLogout } = useAuthStore();
   const { syncWallet } = useWalletStore();
+  
+  const [smartWalletAddress, setSmartWalletAddress] = React.useState<string | null>(null);
   const syncedRef = React.useRef<string | null>(null);
+
+  // Find active signer wallet
+  const activeWallet = React.useMemo(() => {
+    if (!user) return null;
+    const activeAddr = user.wallet?.address || (user as any)?.wallets?.[0]?.address || "";
+    return wallets.find((w) => w.address.toLowerCase() === activeAddr.toLowerCase()) || wallets[0] || null;
+  }, [user, wallets]);
+
+  // Resolve MetaMask smart account address asynchronously
+  React.useEffect(() => {
+    if (!activeWallet) {
+      setSmartWalletAddress(null);
+      return;
+    }
+
+    let active = true;
+
+    async function resolveSmartAccount() {
+      try {
+        const provider = await activeWallet!.getEthereumProvider();
+        
+        // Default to Base Sepolia (84532) for dev, or extract from connected wallet
+        let chainId = 84532;
+        if (activeWallet!.chainId) {
+          const parts = activeWallet!.chainId.split(":");
+          if (parts.length > 1) {
+            chainId = Number(parts[1]);
+          }
+        }
+        
+        const chain = chainId === 8453 || chainId === 84532 ? (chainId === 8453 ? base : baseSepolia) : baseSepolia;
+        
+        const publicClient = createPublicClient({
+          chain,
+          transport: custom(provider)
+        });
+
+        const viemAccount = await toViemAccount({ wallet: activeWallet! });
+        const smartAccount = await toMetaMaskSmartAccount({
+          client: publicClient as any,
+          implementation: Implementation.Hybrid,
+          deployParams: [activeWallet!.address as `0x${string}`, [], [], []],
+          deploySalt: "0x",
+          signer: {
+            account: viemAccount as any
+          }
+        });
+
+        if (active) {
+          console.log("[SessionSync] Resolved MetaMask Smart Account address:", smartAccount.address);
+          setSmartWalletAddress(smartAccount.address);
+        }
+      } catch (err) {
+        console.error("[SessionSync] Failed to resolve MetaMask Smart Account:", err);
+      }
+    }
+
+    resolveSmartAccount();
+
+    return () => {
+      active = false;
+    };
+  }, [activeWallet]);
 
   React.useEffect(() => {
     if (!ready) return;
 
     if (authenticated && user) {
-      const profile = extractUserProfile(user);
+      // Wait until smart account address is resolved to sync with backend
+      if (!smartWalletAddress) return;
+
+      const profile = extractUserProfile(user, smartWalletAddress);
 
       // 1. Update Frontend Zustand Auth Store
       setAuthenticated(true);
@@ -154,11 +226,11 @@ export function SessionSync() {
         avatarUrl: profile.avatarUrl || "",
       });
 
-      // 2. Update Frontend Zustand Wallet Store (always sync to allow clearing connected wallet if empty)
+      // 2. Update Frontend Zustand Wallet Store
       syncWallet(profile.walletAddress || "", profile.smartWalletAddress, (profile as any).walletType);
 
       // Avoid double syncing for the exact same session state
-      const currentSyncKey = `${profile.did}-${profile.walletAddress || "no-wallet"}`;
+      const currentSyncKey = `${profile.did}-${profile.walletAddress || "no-wallet"}-${smartWalletAddress}`;
       if (syncedRef.current === currentSyncKey) return;
       syncedRef.current = currentSyncKey;
 
@@ -168,7 +240,7 @@ export function SessionSync() {
         lastLoginAt: new Date().toISOString(),
       };
 
-      console.log("[SessionSync] Synchronizing user oauth/wallet credentials with backend:", fullProfile);
+      console.log("[SessionSync] Synchronizing user credentials with backend:", fullProfile);
 
       fetch("/api/auth", {
         method: "POST",
@@ -187,9 +259,10 @@ export function SessionSync() {
     } else {
       // User is not logged in on Privy, sync local store to unauthenticated state
       localLogout();
+      setSmartWalletAddress(null);
       syncedRef.current = null;
     }
-  }, [ready, authenticated, user, setUser, setAuthenticated, syncWallet, localLogout]);
+  }, [ready, authenticated, user, smartWalletAddress, setUser, setAuthenticated, syncWallet, localLogout]);
 
   return null;
 }

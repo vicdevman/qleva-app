@@ -179,6 +179,7 @@ export function useAutomations() {
       return res.json();
     },
     staleTime: 30000,
+    enabled: typeof window !== "undefined",
   });
 }
 
@@ -200,7 +201,7 @@ export function useAutomation(id: string) {
       }
       return res.json();
     },
-    enabled: !!id,
+    enabled: typeof window !== "undefined" && !!id,
   });
 }
 
@@ -222,7 +223,7 @@ export function useAutomationExecutions(id: string) {
       }
       return res.json();
     },
-    enabled: !!id,
+    enabled: typeof window !== "undefined" && !!id,
   });
 }
 
@@ -384,6 +385,7 @@ export function useChatsList() {
       }
       return res.json() as Promise<{ id: string; title: string; customTitle?: boolean; updatedAt: string }[]>;
     },
+    enabled: typeof window !== "undefined",
   });
 }
 
@@ -492,6 +494,7 @@ export function useChatMessages(chatId?: string) {
       }
       return res.json();
     },
+    enabled: typeof window !== "undefined" && !!chatId,
   });
 }
 

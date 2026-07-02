@@ -94,7 +94,7 @@ export function MobileProfileDrawer({
   return (
     <Drawer open={open} onOpenChange={setOpen}>
       <DrawerContent className="h-[80vh] outline-0 bg-background/95 backdrop-blur-xl border-t border-border">
-        {/* <DrawerHeader className="pb-3 border-b border-border">
+        <DrawerHeader className="pb-3 border-b border-border">
           <div className="flex items-center justify-between px-1">
             <div className="flex items-center gap-3">
               <img
@@ -109,7 +109,7 @@ export function MobileProfileDrawer({
 
             <span className="bg-card p-2 rounded-lg" onClick={() => setOpen(false)}><X /></span>
           </div>
-        </DrawerHeader> */}
+        </DrawerHeader>
 
         <div className="flex-1 overflow-auto px-4 py-6 space-y-6">
           {/* User Profile Card */}
