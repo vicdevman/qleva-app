@@ -6,8 +6,8 @@ export default async function ChatSessionPage({
 }: {
   params: Promise<{ id: string }> | { id: string };
 }) {
-  console.log("[DEBUG ChatSessionPage] started, params type:", typeof params, "params:", params);
+  // console.log("[DEBUG ChatSessionPage] started, params type:", typeof params, "params:", params);
   const resolvedParams = await params;
-  console.log("[DEBUG ChatSessionPage] resolvedParams:", resolvedParams);
+  // console.log("[DEBUG ChatSessionPage] resolvedParams:", resolvedParams);
   return <ChatContent chatId={resolvedParams.id} />;
 }

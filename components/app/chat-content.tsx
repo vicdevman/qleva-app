@@ -1315,7 +1315,7 @@ export function ScheduledDraftCard({ intentPreview, isExpired, onConfirm, isAppr
   const formatDate = (d: Date) => d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 
   return (
-    <Card className="overflow-hidden bg-background border-0 border-sidebar-border shadow-sm backdrop-blur-md rounded-3xl mt-10 w-full max-w-[calc(100vw)] sm:max-w-md">
+    <Card className="overflow-hidden bg-background border-0 border-sidebar-border shadow-sm backdrop-blur-md rounded-2xl mt-10 w-full max-w-[calc(100vw)] sm:max-w-md">
       <CardContent className="">
         {isExpired && (
           <div className="mb-4 text-xs font-semibold text-amber-500 bg-amber-500/10 p-2 rounded-lg border-amber-500/20">
@@ -1474,7 +1474,7 @@ export function ScheduledDraftCard({ intentPreview, isExpired, onConfirm, isAppr
           </div>
 
           {/* Cryptographic Spend Permission Security Panel */}
-          <div className="border-t  mt-3 space-y-2 pt-2">
+          <div className="border-t  mt-3 space-y-2 pt-3">
             <span className="text-[14px] italic  text-muted-foreground tracking-wider block mb-2">
               Qleva can automate transactions within these limits.
             </span>
@@ -1484,12 +1484,12 @@ export function ScheduledDraftCard({ intentPreview, isExpired, onConfirm, isAppr
                 {intentPreview.spender || "0x8888888888888888888888888888888888888888"}
               </span> */}
 
-              <span className="flex gap-3"><Check className="size-5 text-emerald-500" /></span>
+              <span className="flex gap-3"><Check className="size-5 text-primary" /></span>
               <span className="text-foreground">
                 Spend {amountUsd} {fromTokenInfo.symbol} per 24 Hours
               </span>
 
-              <span className="flex gap-3"><Check className="size-5 text-emerald-500" /></span>
+              <span className="flex gap-3"><Check className="size-5 text-primary" /></span>
               <span className="text-foreground">
                 Valid from {formatDate(new Date())} to {formatDate(expiresDate)}
               </span>
@@ -1502,7 +1502,7 @@ export function ScheduledDraftCard({ intentPreview, isExpired, onConfirm, isAppr
             type="button"
             size="lg"
             disabled={isExpired || isApproving}
-            className="w-full h-10 text-[15px] font-bold rounded-xl bg-primary text-primary-foreground hover:bg-primary/95 disabled:opacity-60 transition-all"
+            className="w-full h-11 text-[15px] font-bold rounded-xl bg-primary text-primary-foreground hover:bg-primary/95 disabled:opacity-60 transition-all"
             onClick={handleApprove}
           >
             {isApproving ? (
@@ -1629,16 +1629,16 @@ function MessageBubble({
                       </p>
                     ),
                     ul: ({ children }) => (
-                      <ul className="list-disc list-outside space-y-3 mb-3 ml-4 pl-2 text-[16px] text-foreground/90">
+                      <ul className="list-disc list-outside space-y-2 mb-3 ml-6 pl-1 text-[16px] text-foreground/90">
                         {children}
                       </ul>
                     ),
                     ol: ({ children }) => (
-                      <ol className="list-decimal list-outside space-y-3 mb-3 ml-4 pl-2 text-[16px] text-foreground/90">
+                      <ol className="list-decimal list-outside space-y-2 mb-3 ml-6 pl-1 text-[16px] text-foreground/90">
                         {children}
                       </ol>
                     ),
-                    li: ({ children }) => <li className="pl-1">{children}</li>,
+                    li: ({ children }) => <li className="pl-1 leading-relaxed">{children}</li>,
                     blockquote: ({ children }) => (
                       <blockquote className="border-l-2 border-primary/60 bg-primary/5 pl-3 pr-2 py-2 my-3 rounded-r-md italic text-foreground/70 text-[16px]">
                         {children}
@@ -1646,7 +1646,7 @@ function MessageBubble({
                     ),
                     code: ({ inline, className, children, ...props }: any) =>
                       !inline ? (
-                        <code className="bg-foreground/5 text-primary font-mono text-xs px-1 py-0.5 rounded">
+                        <code className="bg-foreground/5 border text-primary font-mono text-xs px-1.5 py-0.5 rounded">
                           {children}
                         </code>
                       ) : (
@@ -1732,7 +1732,7 @@ function MessageBubble({
                 title="Copy message"
               >
                 {copied ? (
-                  <Check className="size-4 text-emerald-500" />
+                  <Check className="size-4 text-primary" />
                 ) : (
                   <Copy className="size-4" />
                 )}
@@ -2145,14 +2145,14 @@ export function ChatContent({ chatId }: ChatContentProps) {
   const handleApproveAndSign = async (intentPreview: any) => {
     if (isApproving) return;
     setIsApproving(true);
-    setStreamingSteps([
-      {
-        id: "signing",
-        message: "Requesting wallet signature for Spend Permission...",
-        status: "signing",
-        completed: false,
-      },
-    ]);
+    // setStreamingSteps([
+    //   {
+    //     id: "signing",
+    //     message: "Requesting wallet signature for Spend Permission...",
+    //     status: "signing",
+    //     completed: false,
+    //   },
+    // ]);
 
     try {
       let activeWallet = null;
@@ -2549,7 +2549,7 @@ export function ChatContent({ chatId }: ChatContentProps) {
             </motion.div>
           ) : (
             <div ref={messagesContainerRef} className="flex-1 overflow-y-auto scroll-smooth no-scrollbar">
-              <div className="mx-auto max-w-4xl pb-30 px-1 pt-15">
+              <div className="mx-auto max-w-4xl pb-30 px-0 pt-15">
                 {messages.map((msg, idx) => {
                   const isLastAi = msg.role === "assistant" && idx === messages.length - 1;
                   return (
@@ -2617,7 +2617,7 @@ export function ChatContent({ chatId }: ChatContentProps) {
                       ).map((step) => (
                         <div key={step.id} className="grid grid-cols-[20px_1fr] gap-2">
                           {step.completed ? (
-                            <Check className="size-4 text-emerald-500 mt-0.5" />
+                            <Check className="size-4 text-primary mt-0.5" />
                           ) : (
                             <Loader2 className="size-4 animate-spin text-primary mt-0.5" />
                           )}
@@ -2695,15 +2695,15 @@ export function ChatContent({ chatId }: ChatContentProps) {
                   onClick={() => scrollRef.current?.scrollIntoView({ behavior: "smooth" })}
                   aria-label="Scroll to latest"
                   title="Scroll to latest"
-                  className="flex items-center justify-center w-8 h-8 rounded-xl bg-secondary border border-border/60 text-muted-foreground shadow-md active:scale-90 transition-transform duration-100"
+                  className="flex items-center justify-center w-9 h-9 rounded-full bg-secondary border border-border text-muted-foreground active:scale-90 transition-transform duration-100"
                 >
-                  <ArrowDown className="size-4" />
+                  <ArrowDown className="size-4.5" />
                 </button>
               </motion.div>
             )}
           </AnimatePresence>
 
-            <Card className="overflow-hidden border-0 bg-sidebar text-sidebar-foreground border-sidebar-border rounded-2xl ">
+            <Card className="overflow-hidden border-border bg-sidebar text-sidebar-foreground border-sidebar-border rounded-2xl ">
               <CardContent className="p-0">
                 <div className="flex items-end gap-3 px-3">
                   <Textarea
